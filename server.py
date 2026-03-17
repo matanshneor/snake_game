@@ -69,5 +69,5 @@ if __name__ == '__main__':
         import subprocess, sys
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'flask', 'flask-cors'])
 
-    print("\n🐍 Snake Game Server running at http://localhost:5000\n")
-    app.run(debug=True, port=5000)
+    print("\n🐍 Snake Game Server running at http://localhost:8080\n")
+    app.run(debug=True, port=8080)

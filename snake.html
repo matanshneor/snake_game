@@ -74,6 +74,100 @@ body {
     #fff8f0;
 }
 
+/* ── 2P scoreboard ── */
+.canvas-row {
+  display:flex; align-items:flex-start; gap:0;
+}
+#p2-scoreboard {
+  display:none;
+  flex-direction:column; align-items:center;
+  width:130px; min-width:110px; flex-shrink:0;
+  background:var(--bg-panel);
+  border-left:2px solid var(--border);
+  padding:16px 10px;
+  gap:12px;
+}
+#p2-scoreboard.show { display:flex; }
+.sb-title {
+  font-family:var(--font-title); font-size:13px;
+  color:var(--text-mid); letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.sb-player {
+  width:100%; background:var(--bg-elevated);
+  border-radius:14px; padding:10px 8px;
+  text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+  border:2px solid transparent;
+}
+.sb-player.p1 { border-color:var(--c-orange); }
+.sb-player.p2 { border-color:var(--c-blue); }
+.sb-player-name {
+  font-family:var(--font-ui); font-size:12px; font-weight:800;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:100%;
+}
+.sb-player.p1 .sb-player-name { color:var(--c-orange); }
+.sb-player.p2 .sb-player-name { color:var(--c-blue); }
+.sb-wins {
+  font-family:var(--font-title); font-size:32px; line-height:1;
+  color:var(--text-dark); margin-top:4px;
+}
+.sb-label {
+  font-family:var(--font-ui); font-size:10px;
+  color:var(--text-light); font-weight:700;
+  text-transform:uppercase; letter-spacing:.05em;
+}
+.sb-divider {
+  width:40px; height:2px; background:var(--border); border-radius:2px;
+}
+
+/* ── 1P side leaderboard ── */
+#sp-leaderboard {
+  display:none;
+  flex-direction:column; align-items:stretch;
+  width:160px; min-width:140px; flex-shrink:0;
+  background:var(--bg-panel);
+  border-left:2px solid var(--border);
+  padding:14px 10px;
+  gap:8px;
+}
+#sp-leaderboard.show { display:flex; }
+.sp-lb-title {
+  font-family:var(--font-title); font-size:12px;
+  color:var(--text-mid); letter-spacing:.06em;
+  text-transform:uppercase; text-align:center;
+}
+.sp-lb-level {
+  font-family:var(--font-ui); font-size:11px; font-weight:800;
+  color:var(--c-green); text-align:center;
+  background:rgba(46,204,113,.12); border-radius:20px;
+  padding:2px 8px;
+}
+.sp-lb-row {
+  display:flex; align-items:center; gap:6px;
+  background:var(--bg-elevated); border-radius:10px;
+  padding:6px 8px; font-family:var(--font-ui);
+}
+.sp-lb-rank { font-size:13px; width:18px; text-align:center; flex-shrink:0; }
+.sp-lb-name {
+  font-size:11px; font-weight:800; color:var(--text-dark);
+  flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.sp-lb-time {
+  font-size:11px; font-weight:700; color:var(--text-mid);
+  flex-shrink:0;
+}
+.sp-lb-empty {
+  font-family:var(--font-ui); font-size:11px;
+  color:var(--text-light); text-align:center;
+  padding:8px 0;
+}
+.sp-lb-you {
+  background:rgba(46,204,113,.08);
+  border:1px solid rgba(46,204,113,.3);
+}
+
 /* ── wrapper ── */
 .game-wrapper {
   width:100%; max-width:860px;
@@ -110,8 +204,6 @@ body {
 .dot-cyan    { background:#fff; }
 .dot-magenta { background:#ffe0f7; }
 .dot-green   { background:#b6ffdf; }
-.dot-amber   { background:#fff3b0; }
-.dot-red     { background:#ffd0d8; }
 
 /* ── hud header ── */
 .hud-bar {
@@ -145,37 +237,29 @@ body {
   min-width:80px; text-align:right;
 }
 .stat-value.warning{ color:var(--c-yellow); }
-.stat-value.danger { color:var(--c-red); animation:pulse-red .8s ease infinite; }
 
 /* ── controls bar ── */
 .controls-bar {
   background:var(--bg-panel);
   border-bottom:2px solid var(--border);
-  padding:12px 20px;
+  padding:10px 16px;
   display:flex; align-items:center;
   justify-content:center;
-  gap:22px; flex-wrap:wrap;
-}
-.controls-divider {
-  width:2px; height:28px;
-  background:var(--border);
-  margin:0 4px; flex-shrink:0;
-  border-radius:2px;
+  gap:22px; flex-wrap:nowrap;
 }
 .select-group { display:flex; flex-direction:column; gap:3px; }
-.select-label { display:none; }
 select.ctrl-select {
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 14px center / 12px, linear-gradient(135deg, #7c3aed, #4f46e5);
   border:none;
   border-radius:50px;
   color:white;
   font-family:var(--font-ui);
-  font-size:13px; font-weight:800;
+  font-size:12px; font-weight:800;
   letter-spacing:.03em; text-transform:uppercase;
-  padding:10px 36px 10px 20px;
+  padding:9px 32px 9px 16px;
   cursor:pointer;
-  min-height:42px;
-  min-width:130px;
+  min-height:38px;
+  min-width:110px;
   box-shadow:0 4px 14px rgba(79,70,229,.5);
   transition:filter .16s, transform .12s;
   appearance:none;
@@ -188,15 +272,15 @@ select.ctrl-select option { background:#185a9d; color:white; }
 
 /* ── buttons ── */
 .btn {
-  display:inline-flex; align-items:center; gap:7px;
-  padding:10px 20px; border-radius:50px;
+  display:inline-flex; align-items:center; gap:6px;
+  padding:9px 14px; border-radius:50px;
   font-family:var(--font-ui);
-  font-size:13px; font-weight:800;
+  font-size:12px; font-weight:800;
   letter-spacing:.03em; text-transform:uppercase;
   border:none;
   cursor:pointer; position:relative; overflow:hidden;
   transition:transform .12s, box-shadow .16s, filter .16s;
-  min-height:42px; white-space:nowrap;
+  min-height:38px; white-space:nowrap;
   color:white;
 }
 .btn svg { flex-shrink:0; }
@@ -210,10 +294,16 @@ select.ctrl-select option { background:#185a9d; color:white; }
   box-shadow:0 4px 14px rgba(59,158,255,.4);
 }
 .btn-play {
-  background:linear-gradient(135deg, #ff7f3f, #e85d04);
-  box-shadow:0 4px 14px rgba(255,127,63,.35);
+  background:linear-gradient(135deg, #ff6b6b, #ff7f3f, #ffc800);
+  box-shadow:0 6px 20px rgba(255,127,63,.55);
+  padding:11px 24px;
+  font-size:14px;
+  min-height:44px;
+  border:2px solid rgba(255,255,255,.25);
 }
 .btn-play.active {
+  background:linear-gradient(135deg, #ff4d6d, #c9184a);
+  box-shadow:0 6px 20px rgba(255,77,109,.55);
   animation:btn-pulse-play 1.5s ease infinite;
 }
 .btn-solve {
@@ -223,15 +313,6 @@ select.ctrl-select option { background:#185a9d; color:white; }
 .btn-music {
   background:linear-gradient(135deg, #ff9a9e, #f06292);
   box-shadow:0 4px 14px rgba(240,98,146,.35);
-}
-.btn-2p {
-  background:linear-gradient(135deg, #f7971e, #ffd200);
-  box-shadow:0 4px 14px rgba(247,151,30,.4);
-  color:#333;
-}
-.btn-scores {
-  background:linear-gradient(135deg, #11998e, #38ef7d);
-  box-shadow:0 4px 14px rgba(17,153,142,.4);
 }
 
 /* ── modals ── */
@@ -263,6 +344,13 @@ select.ctrl-select option { background:#185a9d; color:white; }
   margin-bottom:16px;
 }
 .modal-input:focus { border-color:#3b9eff; }
+.modal-input.error { border-color:var(--c-red); animation:shake .3s ease; }
+@keyframes shake {
+  0%,100%{ transform:translateX(0); }
+  20%    { transform:translateX(-6px); }
+  60%    { transform:translateX(6px); }
+  80%    { transform:translateX(-3px); }
+}
 .modal-btn {
   width:100%; padding:13px; border-radius:50px; border:none;
   font-family:'Nunito',sans-serif; font-size:15px; font-weight:800;
@@ -273,37 +361,6 @@ select.ctrl-select option { background:#185a9d; color:white; }
 }
 .modal-btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
 
-/* leaderboard */
-.lb-tabs { display:flex; gap:8px; justify-content:center; margin-bottom:16px; flex-wrap:wrap; }
-.lb-tab {
-  padding:6px 16px; border-radius:50px; border:none; cursor:pointer;
-  font-family:'Nunito',sans-serif; font-size:12px; font-weight:800;
-  text-transform:uppercase; background:#e8f0f5; color:#5a7080;
-  transition:background .15s, color .15s;
-}
-.lb-tab.active { background:#3b9eff; color:white; }
-.lb-table { width:100%; border-collapse:collapse; font-size:13px; }
-.lb-table th {
-  font-weight:800; color:#5a7080; text-transform:uppercase;
-  font-size:11px; letter-spacing:.08em;
-  padding:6px 8px; border-bottom:2px solid #e8f0f5;
-}
-.lb-table td { padding:8px; border-bottom:1px solid #f0f5fa; font-weight:700; }
-.lb-table tr:first-child td { color:#ffc800; }
-.lb-table tr:nth-child(2) td { color:#94aab8; }
-.lb-table tr:nth-child(3) td { color:#cd7f32; }
-.lb-empty { color:#94aab8; font-style:italic; padding:20px; font-size:14px; }
-
-/* 2-player HUD */
-.p2-indicator {
-  display:none; align-items:center; gap:16px;
-  font-family:'Nunito',sans-serif; font-size:12px; font-weight:800;
-  text-transform:uppercase; letter-spacing:.06em;
-}
-.p2-indicator.show { display:flex; }
-.p-badge { padding:4px 12px; border-radius:50px; color:white; }
-.p1-badge { background:var(--c-orange); }
-.p2-badge { background:var(--c-blue); }
 .btn-clear {
   background:linear-gradient(135deg, #94aab8, #6b8796);
   box-shadow:0 4px 10px rgba(100,130,150,.25);
@@ -320,7 +377,6 @@ select.ctrl-select option { background:#185a9d; color:white; }
   padding:28px; min-height:460px;
   position:relative;
 }
-.canvas-container::before { display:none; }
 canvas {
   display:block; border-radius:12px; position:relative; z-index:1;
   box-shadow: 0 4px 24px rgba(59,158,255,.15), 0 2px 8px rgba(0,0,0,.08);
@@ -459,20 +515,18 @@ canvas.revealed  { animation:maze-reveal .3s ease-out; }
 
   <!-- CONTROLS BAR -->
   <div class="controls-bar">
-    <button class="btn btn-scores" id="btn-scores">🏆 Scores</button>
-    <button class="btn btn-2p" id="btn-2p" disabled>👥 2 Players</button>
+    <button class="btn btn-play" id="btn-play" disabled>
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M3 2.5l10 5.5-10 5.5V2.5z"/>
+      </svg>
+      Play
+    </button>
     <button class="btn btn-new" id="btn-generate">
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
         <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
       </svg>
       New Maze
-    </button>
-    <button class="btn btn-play" id="btn-play" disabled>
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M3 2.5l10 5.5-10 5.5V2.5z"/>
-      </svg>
-      Play
     </button>
     <button class="btn btn-solve" id="btn-solve" disabled>
       <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
@@ -487,7 +541,6 @@ canvas.revealed  { animation:maze-reveal .3s ease-out; }
       Clear
     </button>
     <div class="select-group">
-      <span class="select-label">Level</span>
       <select class="ctrl-select" id="size-select">
         <option value="15">Easy</option>
         <option value="25" selected>Medium</option>
@@ -497,9 +550,30 @@ canvas.revealed  { animation:maze-reveal .3s ease-out; }
     </div>
   </div>
 
-  <!-- CANVAS -->
-  <div class="canvas-container" id="canvas-wrap">
-    <canvas id="maze-canvas" role="img" aria-label="Maze"></canvas>
+  <!-- CANVAS + 2P SCOREBOARD -->
+  <div class="canvas-row">
+    <div class="canvas-container" id="canvas-wrap" style="flex:1;min-width:0;">
+      <canvas id="maze-canvas" role="img" aria-label="Maze"></canvas>
+    </div>
+    <div id="sp-leaderboard">
+      <div class="sp-lb-title">🏆 שיאים</div>
+      <div class="sp-lb-level" id="sp-lb-level">Medium</div>
+      <div id="sp-lb-rows"><div class="sp-lb-empty">טוען...</div></div>
+    </div>
+    <div id="p2-scoreboard">
+      <div class="sb-title">ניצחונות</div>
+      <div class="sb-player p1">
+        <div class="sb-player-name" id="sb-p1-name">שחקן 1</div>
+        <div class="sb-wins" id="sb-p1-wins">0</div>
+        <div class="sb-label">נצחונות</div>
+      </div>
+      <div class="sb-divider"></div>
+      <div class="sb-player p2">
+        <div class="sb-player-name" id="sb-p2-name">שחקן 2</div>
+        <div class="sb-wins" id="sb-p2-wins">0</div>
+        <div class="sb-label">נצחונות</div>
+      </div>
+    </div>
   </div>
 
   <!-- FOOTER HUD -->
@@ -511,29 +585,35 @@ canvas.revealed  { animation:maze-reveal .3s ease-out; }
 
 </div>
 
-<!-- USERNAME MODAL -->
+<!-- SETUP MODAL -->
 <div class="modal-overlay" id="username-modal">
   <div class="modal-box">
     <div class="modal-title">🐍 Snake Game</div>
-    <div class="modal-sub">Enter your name to save your score!</div>
-    <input class="modal-input" id="username-input" type="text" maxlength="20" placeholder="Your name..." autocomplete="off"/>
-    <button class="modal-btn" id="username-confirm">Let's Play! 🎮</button>
-  </div>
-</div>
 
-<!-- LEADERBOARD MODAL -->
-<div class="modal-overlay" id="lb-modal">
-  <div class="modal-box">
-    <div class="modal-title">🏆 High Scores</div>
-    <div class="lb-tabs">
-      <button class="lb-tab active" data-level="Easy">Easy</button>
-      <button class="lb-tab active" data-level="Medium">Medium</button>
-      <button class="lb-tab" data-level="Hard">Hard</button>
-      <button class="lb-tab" data-level="Extreme">Extreme</button>
+    <!-- Step 1: choose mode -->
+    <div id="setup-step1">
+      <div class="modal-sub">CHOOSE PLAYER</div>
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button class="modal-btn" id="btn-pick-1p" style="flex:1">ONE PLAYER</button>
+        <button class="modal-btn" id="btn-pick-2p" style="flex:1;background:var(--c-blue)">TWO PLAYERS</button>
+      </div>
     </div>
-    <div id="lb-content"><div class="lb-empty">Loading...</div></div>
-    <br>
-    <button class="modal-btn" id="lb-close">Close</button>
+
+    <!-- Step 2a: 1-player name -->
+    <div id="setup-step2-1p" style="display:none">
+      <div class="modal-sub">NAME</div>
+      <input class="modal-input" id="username-input" type="text" maxlength="20" placeholder="Your name..." autocomplete="off" dir="auto"/>
+      <button class="modal-btn" id="username-confirm" play >LET'S PLAY🎮</button>
+    </div>
+
+    <!-- Step 2b: 2-player names -->
+    <div id="setup-step2-2p" style="display:none">
+      <div class="modal-sub" style="color:var(--c-orange)">🟠 שחקן 1 (מקשי חץ)</div>
+      <input class="modal-input" id="p1-name-input" type="text" maxlength="20" placeholder="שם שחקן 1..." autocomplete="off" dir="auto"/>
+      <div class="modal-sub" style="color:var(--c-blue);margin-top:8px">🔵 שחקן 2 (WASD)</div>
+      <input class="modal-input" id="p2-name-input" type="text" maxlength="20" placeholder="שם שחקן 2..." autocomplete="off" dir="auto"/>
+      <button class="modal-btn" id="btn-2p-confirm" style="background:var(--c-blue)">יאללה! 🎮</button>
+    </div>
   </div>
 </div>
 
@@ -569,7 +649,9 @@ let busy=false;
 
 // username
 let username = '';
-const SERVER = 'http://localhost:5000';
+let p2Name = '';
+let p1Wins = 0, p2Wins = 0;
+const SERVER = 'http://localhost:8080';
 
 // player 1 state
 let playMode=false, playerWon=false;
@@ -579,7 +661,7 @@ let playerPath=[], pathSet=new Set();
 let twoPlayerMode=false, p2Won=false;
 let p2Path=[], p2Set=new Set();
 let p2HeldKey=null, p2MoveInterval=null;
-const P2_MAP={'w':[-1,0],'s':[1,0],'a':[0,-1],'d':[0,1]};
+const P2_MAP={'KeyW':[-1,0],'KeyS':[1,0],'KeyA':[0,-1],'KeyD':[0,1]};
 let dragging=false;
 let timerStart=null, timerInterval=null, elapsed=0;
 
@@ -842,7 +924,7 @@ document.addEventListener("keydown",e=>{
 
 document.addEventListener("keyup",e=>{
   if(e.key === heldKey){ heldKey=null; clearInterval(moveInterval); }
-  if(e.key.toLowerCase() === p2HeldKey){ p2HeldKey=null; clearInterval(p2MoveInterval); }
+  if(e.code === p2HeldKey){ p2HeldKey=null; clearInterval(p2MoveInterval); }
 });
 
 /* ═══════════════ PLAYER 2 MOVE ═══════════════ */
@@ -876,26 +958,26 @@ function tryMove2(r,c){
   }
 }
 
-function doP2Move(key){
+function doP2Move(code){
   if(!twoPlayerMode||!playMode) return;
-  const lk=key.toLowerCase();
-  if(!P2_MAP[lk]) return;
+  if(!P2_MAP[code]) return;
   if(p2Path.length===0){
     p2Path=[[1,1]]; p2Set=new Set(["1,1"]);
     if(playerPath.length===0){ playerPath=[[1,1]]; pathSet=new Set(["1,1"]); startTimer(); drawAll(); }
     return;
   }
-  const[dr,dc]=P2_MAP[lk];
+  const[dr,dc]=P2_MAP[code];
   const[r,c]=p2Path[p2Path.length-1];
   tryMove2(r+dr,c+dc);
 }
 
 document.addEventListener("keydown",e=>{
-  if(!P2_MAP[e.key?.toLowerCase()]) return;
-  if(e.key==='s'||e.key==='w'||e.key==='a'||e.key==='d') e.preventDefault();
-  if(p2HeldKey===e.key.toLowerCase()) return;
-  p2HeldKey=e.key.toLowerCase();
-  doP2Move(e.key);
+  if(!P2_MAP[e.code]) return;
+  if(document.activeElement.tagName==='INPUT') return;
+  e.preventDefault();
+  if(p2HeldKey===e.code) return;
+  p2HeldKey=e.code;
+  doP2Move(e.code);
   clearInterval(p2MoveInterval);
   p2MoveInterval=setInterval(()=>doP2Move(p2HeldKey), 45);
 });
@@ -911,6 +993,7 @@ function setMode(cls,hint,modeLabel){
 /* ═══════════════ BUTTONS ═══════════════ */
 btnGen.addEventListener("click",()=>{
   if(animFrame){clearTimeout(animFrame);animFrame=null;}
+  const was2P = twoPlayerMode;
   stopTimer(); busy=false; playMode=false; playerWon=false; clearInterval(moveInterval); heldKey=null;
   p2Won=false; p2Path=[]; p2Set=new Set(); clearInterval(p2MoveInterval); p2HeldKey=null;
   twoPlayerMode=false;
@@ -936,10 +1019,16 @@ btnGen.addEventListener("click",()=>{
   setTimeout(()=>canvas.classList.remove("revealed"),350);
   drawAll();
 
-  setMode("idle","Click 'Play' to play, or 'Auto Solve'","IDLE");
-  btnPlay.disabled=false; btnSolve.disabled=false;
-  btnReset.disabled=true; btnGen.disabled=false;
-  document.getElementById('btn-2p').disabled=false;
+  if(was2P){
+    twoPlayerMode=true; playMode=true;
+    canvas.classList.add("play-mode");
+    btnSolve.disabled=true; btnReset.disabled=false;
+    setMode("play","🟠 P1: מקשי חץ  ·  🔵 P2: WASD  — מי יגיע ראשון?","2P");
+  } else {
+    setMode("idle","Click 'Play' to play, or 'Auto Solve'","IDLE");
+    btnPlay.disabled=false; btnSolve.disabled=false;
+    btnReset.disabled=true; btnGen.disabled=false;
+  }
 });
 
 btnPlay.addEventListener("click",()=>{
@@ -1030,19 +1119,92 @@ function shuffle(a){
 
 document.getElementById("size-select").addEventListener("change", ()=> btnGen.click());
 
-/* ═══════════════ USERNAME MODAL ═══════════════ */
-const usernameModal  = document.getElementById('username-modal');
-const usernameInput  = document.getElementById('username-input');
-const usernameConfirm= document.getElementById('username-confirm');
+/* ═══════════════ SETUP MODAL ═══════════════ */
+const usernameModal = document.getElementById('username-modal');
+const step1         = document.getElementById('setup-step1');
+const step2_1p      = document.getElementById('setup-step2-1p');
+const step2_2p      = document.getElementById('setup-step2-2p');
+const usernameInput = document.getElementById('username-input');
+const usernameConfirm = document.getElementById('username-confirm');
 
-function confirmUsername(){
-  username = usernameInput.value.trim() || 'Anonymous';
+function closeSetupModal(){
   usernameModal.classList.remove('show');
+}
+
+// Step 1: pick mode
+document.getElementById('btn-pick-1p').addEventListener('click', ()=>{
+  step1.style.display = 'none';
+  step2_1p.style.display = 'block';
+  setTimeout(()=>usernameInput.focus(), 50);
+});
+
+document.getElementById('btn-pick-2p').addEventListener('click', ()=>{
+  step1.style.display = 'none';
+  step2_2p.style.display = 'block';
+  setTimeout(()=>document.getElementById('p1-name-input').focus(), 50);
+});
+
+// Step 2a: 1-player confirm
+function confirmUsername(){
+  if(!usernameInput.value.trim()){
+    usernameInput.classList.remove('error');
+    void usernameInput.offsetWidth; // restart animation
+    usernameInput.classList.add('error');
+    usernameInput.focus();
+    return;
+  }
+  username = usernameInput.value.trim();
+  closeSetupModal();
+  spLbPanel.classList.add('show');
+  fetchSideLeaderboard();
+  startMusic();
 }
 usernameConfirm.addEventListener('click', confirmUsername);
 usernameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmUsername(); });
+
+// Step 2b: 2-player confirm
+function updateScoreboard(){
+  document.getElementById('sb-p1-name').textContent  = username || 'שחקן 1';
+  document.getElementById('sb-p2-name').textContent  = p2Name   || 'שחקן 2';
+  document.getElementById('sb-p1-wins').textContent  = p1Wins;
+  document.getElementById('sb-p2-wins').textContent  = p2Wins;
+}
+
+function start2PMode(){
+  const p1Input = document.getElementById('p1-name-input');
+  const p2Input = document.getElementById('p2-name-input');
+  if(!p1Input.value.trim()){
+    p1Input.classList.remove('error'); void p1Input.offsetWidth;
+    p1Input.classList.add('error'); p1Input.focus(); return;
+  }
+  if(!p2Input.value.trim()){
+    p2Input.classList.remove('error'); void p2Input.offsetWidth;
+    p2Input.classList.add('error'); p2Input.focus(); return;
+  }
+  username = p1Input.value.trim();
+  p2Name   = p2Input.value.trim();
+  closeSetupModal();
+  twoPlayerMode = true;
+  p2Path=[]; p2Set=new Set(); p2Won=false;
+  playerPath=[]; pathSet=new Set(); playerWon=false;
+  autoVisited=null; autoSolution=null;
+  timerVal.textContent="00.0s"; stepsVal.textContent=0;
+  playMode=true;
+  canvas.classList.add("play-mode");
+  btnPlay.classList.remove("active");
+  btnSolve.disabled=true; btnReset.disabled=false;
+  updateScoreboard();
+  document.getElementById('p2-scoreboard').classList.add('show');
+  startMusic();
+  drawAll();
+  setMode("play","🟠 P1: מקשי חץ  ·  🔵 P2: WASD  — מי יגיע ראשון?","2P");
+}
+document.getElementById('btn-2p-confirm').addEventListener('click', start2PMode);
+document.getElementById('p2-name-input').addEventListener('keydown', e=>{
+  if(e.key==='Enter') start2PMode();
+});
+
 usernameModal.classList.add('show');
-setTimeout(()=>usernameInput.focus(), 100);
 
 /* ═══════════════ SCORE SAVING ═══════════════ */
 function getCurrentLevel(){
@@ -1058,60 +1220,55 @@ async function saveScore(time, steps){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({ username, time, steps, level:getCurrentLevel() })
     });
+    fetchSideLeaderboard();
   } catch(e){ console.warn('Could not save score (server not running)'); }
 }
 
-/* ═══════════════ LEADERBOARD ═══════════════ */
-const lbModal   = document.getElementById('lb-modal');
-const lbContent = document.getElementById('lb-content');
-let lbLevel     = 'Medium';
+/* ═══════════════ SIDE LEADERBOARD (1P) ═══════════════ */
+const spLbPanel = document.getElementById('sp-leaderboard');
+const spLbRows  = document.getElementById('sp-lb-rows');
+const spLbLevel = document.getElementById('sp-lb-level');
 
-document.querySelectorAll('.lb-tab').forEach(tab=>{
-  tab.addEventListener('click', ()=>{
-    document.querySelectorAll('.lb-tab').forEach(t=>t.classList.remove('active'));
-    tab.classList.add('active');
-    lbLevel = tab.dataset.level;
-    fetchLeaderboard();
-  });
-});
-
-async function fetchLeaderboard(){
-  lbContent.innerHTML='<div class="lb-empty">Loading...</div>';
+async function fetchSideLeaderboard(){
+  if(twoPlayerMode) return;
+  const level = getCurrentLevel();
+  spLbLevel.textContent = level;
+  spLbRows.innerHTML = '<div class="sp-lb-empty">טוען...</div>';
   try {
-    const res = await fetch(`${SERVER}/scores?level=${lbLevel}`);
+    const res = await fetch(`${SERVER}/scores?level=${level}`);
     const scores = await res.json();
     if(!scores.length){
-      lbContent.innerHTML='<div class="lb-empty">No scores yet for this level!</div>';
+      spLbRows.innerHTML = '<div class="sp-lb-empty">אין שיאים עדיין!</div>';
       return;
     }
-    const medals=['🥇','🥈','🥉'];
-    lbContent.innerHTML=`<table class="lb-table">
-      <tr><th>#</th><th>Name</th><th>Time</th><th>Steps</th><th>Date</th></tr>
-      ${scores.map((s,i)=>`<tr>
-        <td>${medals[i]||i+1}</td>
-        <td>${s.username}</td>
-        <td>${s.time}s</td>
-        <td>${s.steps}</td>
-        <td>${s.date}</td>
-      </tr>`).join('')}
-    </table>`;
+    const medals = ['🥇','🥈','🥉'];
+    const top = scores.slice(0,5);
+    spLbRows.innerHTML = top.map((s,i) => {
+      const isYou = s.username === username;
+      return `<div class="sp-lb-row${isYou?' sp-lb-you':''}">
+        <span class="sp-lb-rank">${medals[i]||i+1}</span>
+        <span class="sp-lb-name">${s.username}</span>
+        <span class="sp-lb-time">${s.time}s</span>
+      </div>`;
+    }).join('');
   } catch(e){
-    lbContent.innerHTML='<div class="lb-empty">⚠️ Start server.py to see scores</div>';
+    spLbRows.innerHTML = '<div class="sp-lb-empty">⚠️ הפעל server.py</div>';
   }
 }
 
-document.getElementById('btn-scores').addEventListener('click', ()=>{
-  lbModal.classList.add('show');
-  fetchLeaderboard();
-});
-document.getElementById('lb-close').addEventListener('click', ()=>{
-  lbModal.classList.remove('show');
+// refresh side leaderboard when level changes
+document.getElementById('size-select').addEventListener('change', ()=>{
+  if(!twoPlayerMode) fetchSideLeaderboard();
 });
 
 /* ═══════════════ 2-PLAYER MODE ═══════════════ */
 function show2PWinner(winner, time, steps){
   const isP1 = winner===1;
-  document.getElementById('victory-text').textContent = isP1 ? '🟠 Player 1 Wins!!' : '🔵 Player 2 Wins!!';
+  if(isP1) p1Wins++; else p2Wins++;
+  updateScoreboard();
+  const winnerName = isP1 ? (username||'שחקן 1') : (p2Name||'שחקן 2');
+  document.getElementById('victory-text').textContent = (isP1 ? '🟠 ' : '🔵 ') + winnerName + ' מנצח!!';
+
   victorySub.textContent = `⏱ ${time}s  ·  👣 ${steps} steps`;
   victoryOverlay.classList.add('show');
   spawnCelebration();
@@ -1120,20 +1277,6 @@ function show2PWinner(winner, time, steps){
   playApplause();
 }
 
-document.getElementById('btn-2p').addEventListener('click', ()=>{
-  if(busy) return;
-  twoPlayerMode = true;
-  p2Path=[]; p2Set=new Set(); p2Won=false;
-  playerPath=[]; pathSet=new Set(); playerWon=false;
-  autoVisited=null; autoSolution=null;
-  timerVal.textContent="00.0s"; stepsVal.textContent=0;
-  playMode=true;
-  canvas.classList.add("play-mode");
-  btnPlay.classList.remove("active");
-  btnSolve.disabled=true; btnReset.disabled=false;
-  drawAll();
-  setMode("play","🟠 P1: Arrow Keys  ·  🔵 P2: WASD  — Race to the exit!","2P");
-});
 
 btnGen.click();
 
@@ -1271,6 +1414,7 @@ victoryClose.addEventListener('click', ()=>{
 });
 
 /* ═══════════════ BACKGROUND MUSIC ═══════════════ */
+let startMusic; // exposed for auto-start on modal confirm
 (function(){
   let ctx = null, playing = false, loopTimer = null;
 
@@ -1413,7 +1557,7 @@ victoryClose.addEventListener('click', ()=>{
     }, delay);
   }
 
-  btn.addEventListener('click', ()=>{
+  function toggleMusic(){
     if(!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
     if(ctx.state === 'suspended') ctx.resume();
     playing = !playing;
@@ -1425,7 +1569,13 @@ victoryClose.addEventListener('click', ()=>{
       clearTimeout(loopTimer);
       ctx.suspend();
     }
-  });
+  }
+
+  startMusic = function(){
+    if(!playing) toggleMusic();
+  };
+
+  btn.addEventListener('click', toggleMusic);
 })();
 
 /* ═══════════════ BG DECORATIONS ═══════════════ */
