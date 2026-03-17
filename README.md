@@ -1,4 +1,4 @@
-# 🌀 Maze Runner — Kids Maze Game
+# 🐍 Snake Game — Kids Maze Game
 
 A fun and colorful maze game built for kids! Navigate through randomly generated mazes using your keyboard arrow keys.
 
