@@ -224,6 +224,86 @@ select.ctrl-select option { background:#185a9d; color:white; }
   background:linear-gradient(135deg, #ff9a9e, #f06292);
   box-shadow:0 4px 14px rgba(240,98,146,.35);
 }
+.btn-2p {
+  background:linear-gradient(135deg, #f7971e, #ffd200);
+  box-shadow:0 4px 14px rgba(247,151,30,.4);
+  color:#333;
+}
+.btn-scores {
+  background:linear-gradient(135deg, #11998e, #38ef7d);
+  box-shadow:0 4px 14px rgba(17,153,142,.4);
+}
+
+/* ── modals ── */
+.modal-overlay {
+  display:none; position:fixed; inset:0; z-index:1000;
+  background:rgba(0,0,0,.35); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center;
+}
+.modal-overlay.show { display:flex; }
+.modal-box {
+  background:white; border-radius:24px;
+  padding:36px 44px; text-align:center;
+  box-shadow:0 16px 60px rgba(0,0,0,.18);
+  animation:pop-in .4s cubic-bezier(.34,1.56,.64,1) both;
+  min-width:320px; max-width:480px; width:90%;
+}
+.modal-title {
+  font-family:'Fredoka One',cursive; font-size:32px;
+  background:linear-gradient(90deg,#3b9eff,#a855f7);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text; margin-bottom:8px;
+}
+.modal-sub { font-size:14px; color:#5a7080; font-weight:600; margin-bottom:20px; }
+.modal-input {
+  width:100%; padding:12px 16px; border-radius:50px;
+  border:2px solid #d0e6f5; font-family:'Nunito',sans-serif;
+  font-size:16px; font-weight:700; text-align:center;
+  outline:none; transition:border-color .2s;
+  margin-bottom:16px;
+}
+.modal-input:focus { border-color:#3b9eff; }
+.modal-btn {
+  width:100%; padding:13px; border-radius:50px; border:none;
+  font-family:'Nunito',sans-serif; font-size:15px; font-weight:800;
+  text-transform:uppercase; cursor:pointer; color:white;
+  background:linear-gradient(135deg,#3b9eff,#1a78d4);
+  box-shadow:0 4px 14px rgba(59,158,255,.4);
+  transition:filter .15s, transform .1s;
+}
+.modal-btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
+
+/* leaderboard */
+.lb-tabs { display:flex; gap:8px; justify-content:center; margin-bottom:16px; flex-wrap:wrap; }
+.lb-tab {
+  padding:6px 16px; border-radius:50px; border:none; cursor:pointer;
+  font-family:'Nunito',sans-serif; font-size:12px; font-weight:800;
+  text-transform:uppercase; background:#e8f0f5; color:#5a7080;
+  transition:background .15s, color .15s;
+}
+.lb-tab.active { background:#3b9eff; color:white; }
+.lb-table { width:100%; border-collapse:collapse; font-size:13px; }
+.lb-table th {
+  font-weight:800; color:#5a7080; text-transform:uppercase;
+  font-size:11px; letter-spacing:.08em;
+  padding:6px 8px; border-bottom:2px solid #e8f0f5;
+}
+.lb-table td { padding:8px; border-bottom:1px solid #f0f5fa; font-weight:700; }
+.lb-table tr:first-child td { color:#ffc800; }
+.lb-table tr:nth-child(2) td { color:#94aab8; }
+.lb-table tr:nth-child(3) td { color:#cd7f32; }
+.lb-empty { color:#94aab8; font-style:italic; padding:20px; font-size:14px; }
+
+/* 2-player HUD */
+.p2-indicator {
+  display:none; align-items:center; gap:16px;
+  font-family:'Nunito',sans-serif; font-size:12px; font-weight:800;
+  text-transform:uppercase; letter-spacing:.06em;
+}
+.p2-indicator.show { display:flex; }
+.p-badge { padding:4px 12px; border-radius:50px; color:white; }
+.p1-badge { background:var(--c-orange); }
+.p2-badge { background:var(--c-blue); }
 .btn-clear {
   background:linear-gradient(135deg, #94aab8, #6b8796);
   box-shadow:0 4px 10px rgba(100,130,150,.25);
@@ -379,6 +459,8 @@ canvas.revealed  { animation:maze-reveal .3s ease-out; }
 
   <!-- CONTROLS BAR -->
   <div class="controls-bar">
+    <button class="btn btn-scores" id="btn-scores">🏆 Scores</button>
+    <button class="btn btn-2p" id="btn-2p" disabled>👥 2 Players</button>
     <button class="btn btn-new" id="btn-generate">
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
         <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
@@ -429,6 +511,32 @@ canvas.revealed  { animation:maze-reveal .3s ease-out; }
 
 </div>
 
+<!-- USERNAME MODAL -->
+<div class="modal-overlay" id="username-modal">
+  <div class="modal-box">
+    <div class="modal-title">🐍 Snake Game</div>
+    <div class="modal-sub">Enter your name to save your score!</div>
+    <input class="modal-input" id="username-input" type="text" maxlength="20" placeholder="Your name..." autocomplete="off"/>
+    <button class="modal-btn" id="username-confirm">Let's Play! 🎮</button>
+  </div>
+</div>
+
+<!-- LEADERBOARD MODAL -->
+<div class="modal-overlay" id="lb-modal">
+  <div class="modal-box">
+    <div class="modal-title">🏆 High Scores</div>
+    <div class="lb-tabs">
+      <button class="lb-tab active" data-level="Easy">Easy</button>
+      <button class="lb-tab active" data-level="Medium">Medium</button>
+      <button class="lb-tab" data-level="Hard">Hard</button>
+      <button class="lb-tab" data-level="Extreme">Extreme</button>
+    </div>
+    <div id="lb-content"><div class="lb-empty">Loading...</div></div>
+    <br>
+    <button class="modal-btn" id="lb-close">Close</button>
+  </div>
+</div>
+
 <!-- VICTORY OVERLAY -->
 <canvas id="confetti-canvas"></canvas>
 <div id="victory-overlay">
@@ -459,9 +567,19 @@ let grid=[];
 let animFrame=null;
 let busy=false;
 
-// player state
+// username
+let username = '';
+const SERVER = 'http://localhost:5000';
+
+// player 1 state
 let playMode=false, playerWon=false;
 let playerPath=[], pathSet=new Set();
+
+// player 2 state
+let twoPlayerMode=false, p2Won=false;
+let p2Path=[], p2Set=new Set();
+let p2HeldKey=null, p2MoveInterval=null;
+const P2_MAP={'w':[-1,0],'s':[1,0],'a':[0,-1],'d':[0,1]};
 let dragging=false;
 let timerStart=null, timerInterval=null, elapsed=0;
 
@@ -556,19 +674,38 @@ function drawAll(){
     ctx.strokeRect(x+1,y+1,CELL-2,CELL-2);
   }
 
-  // player trail — full opacity, whole path
+  // player 1 trail — orange
   for(let i=0;i<playerPath.length-1;i++){
     const[r,c]=playerPath[i];
     ctx.fillStyle='rgba(255,127,63,0.55)';
     ctx.fillRect(c*CELL+1,r*CELL+1,CELL-2,CELL-2);
   }
 
-  // player head — bright orange circle
+  // player 2 trail — blue
+  for(let i=0;i<p2Path.length-1;i++){
+    const[r,c]=p2Path[i];
+    ctx.fillStyle='rgba(59,158,255,0.55)';
+    ctx.fillRect(c*CELL+1,r*CELL+1,CELL-2,CELL-2);
+  }
+
+  // player 1 head — orange
   if(playerPath.length>0&&!playerWon){
     const[r,c]=playerPath[playerPath.length-1];
     const[cx2,cy2]=cellCenter(r,c);
     ctx.shadowColor="rgba(255,127,63,.5)"; ctx.shadowBlur=10;
     ctx.fillStyle="#ff7f3f";
+    ctx.beginPath(); ctx.arc(cx2,cy2,CELL*.38,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle="#fff";
+    ctx.beginPath(); ctx.arc(cx2,cy2,CELL*.15,0,Math.PI*2); ctx.fill();
+  }
+
+  // player 2 head — blue
+  if(p2Path.length>0&&!p2Won){
+    const[r,c]=p2Path[p2Path.length-1];
+    const[cx2,cy2]=cellCenter(r,c);
+    ctx.shadowColor="rgba(59,158,255,.5)"; ctx.shadowBlur=10;
+    ctx.fillStyle="#3b9eff";
     ctx.beginPath(); ctx.arc(cx2,cy2,CELL*.38,0,Math.PI*2); ctx.fill();
     ctx.shadowBlur=0;
     ctx.fillStyle="#fff";
@@ -641,7 +778,13 @@ function tryMove(r,c){
     btnSolve.disabled=false; btnReset.disabled=false; btnGen.disabled=false;
     timerVal.textContent=t+"s"; timerVal.className="stat-value";
     setTimeout(()=>canvas.classList.remove("victory"),700);
-    showVictory(t, playerPath.length);
+    if(!twoPlayerMode){
+      document.getElementById('victory-text').textContent='You did it!! 🎉';
+      saveScore(t, playerPath.length);
+      showVictory(t, playerPath.length);
+    } else {
+      show2PWinner(1, t, playerPath.length);
+    }
   }
 }
 
@@ -698,10 +841,63 @@ document.addEventListener("keydown",e=>{
 });
 
 document.addEventListener("keyup",e=>{
-  if(e.key === heldKey){
-    heldKey = null;
-    clearInterval(moveInterval);
+  if(e.key === heldKey){ heldKey=null; clearInterval(moveInterval); }
+  if(e.key.toLowerCase() === p2HeldKey){ p2HeldKey=null; clearInterval(p2MoveInterval); }
+});
+
+/* ═══════════════ PLAYER 2 MOVE ═══════════════ */
+function tryMove2(r,c){
+  if(!twoPlayerMode||p2Won||!playMode) return;
+  if(r<0||r>=ROWS||c<0||c>=COLS) return;
+  if(grid[r][c]===1) return;
+  if(p2Path.length===0) return;
+  const last=p2Path[p2Path.length-1];
+  const key=`${r},${c}`;
+  const dr=Math.abs(r-last[0]), dc=Math.abs(c-last[1]);
+  if(dr+dc!==1) return;
+  // backtrack
+  if(p2Path.length>=2){
+    const prev=p2Path[p2Path.length-2];
+    if(prev[0]===r&&prev[1]===c){
+      p2Set.delete(`${last[0]},${last[1]}`);
+      p2Path.pop(); drawAll(); return;
+    }
   }
+  if(p2Set.has(key)) return;
+  p2Path.push([r,c]); p2Set.add(key);
+  drawAll();
+  if(r===ROWS-2&&c===COLS-2){
+    p2Won=true; stopTimer();
+    clearInterval(p2MoveInterval); p2HeldKey=null;
+    clearInterval(moveInterval); heldKey=null;
+    playMode=false;
+    const t=elapsed.toFixed(2);
+    show2PWinner(2, t, p2Path.length);
+  }
+}
+
+function doP2Move(key){
+  if(!twoPlayerMode||!playMode) return;
+  const lk=key.toLowerCase();
+  if(!P2_MAP[lk]) return;
+  if(p2Path.length===0){
+    p2Path=[[1,1]]; p2Set=new Set(["1,1"]);
+    if(playerPath.length===0){ playerPath=[[1,1]]; pathSet=new Set(["1,1"]); startTimer(); drawAll(); }
+    return;
+  }
+  const[dr,dc]=P2_MAP[lk];
+  const[r,c]=p2Path[p2Path.length-1];
+  tryMove2(r+dr,c+dc);
+}
+
+document.addEventListener("keydown",e=>{
+  if(!P2_MAP[e.key?.toLowerCase()]) return;
+  if(e.key==='s'||e.key==='w'||e.key==='a'||e.key==='d') e.preventDefault();
+  if(p2HeldKey===e.key.toLowerCase()) return;
+  p2HeldKey=e.key.toLowerCase();
+  doP2Move(e.key);
+  clearInterval(p2MoveInterval);
+  p2MoveInterval=setInterval(()=>doP2Move(p2HeldKey), 45);
 });
 
 /* ═══════════════ MODE HELPER ═══════════════ */
@@ -716,6 +912,8 @@ function setMode(cls,hint,modeLabel){
 btnGen.addEventListener("click",()=>{
   if(animFrame){clearTimeout(animFrame);animFrame=null;}
   stopTimer(); busy=false; playMode=false; playerWon=false; clearInterval(moveInterval); heldKey=null;
+  p2Won=false; p2Path=[]; p2Set=new Set(); clearInterval(p2MoveInterval); p2HeldKey=null;
+  twoPlayerMode=false;
   playerPath=[]; pathSet=new Set();
   autoVisited=null; autoSolution=null;
   canvas.classList.remove("play-mode","victory");
@@ -741,6 +939,7 @@ btnGen.addEventListener("click",()=>{
   setMode("idle","Click 'Play' to play, or 'Auto Solve'","IDLE");
   btnPlay.disabled=false; btnSolve.disabled=false;
   btnReset.disabled=true; btnGen.disabled=false;
+  document.getElementById('btn-2p').disabled=false;
 });
 
 btnPlay.addEventListener("click",()=>{
@@ -830,6 +1029,111 @@ function shuffle(a){
 }
 
 document.getElementById("size-select").addEventListener("change", ()=> btnGen.click());
+
+/* ═══════════════ USERNAME MODAL ═══════════════ */
+const usernameModal  = document.getElementById('username-modal');
+const usernameInput  = document.getElementById('username-input');
+const usernameConfirm= document.getElementById('username-confirm');
+
+function confirmUsername(){
+  username = usernameInput.value.trim() || 'Anonymous';
+  usernameModal.classList.remove('show');
+}
+usernameConfirm.addEventListener('click', confirmUsername);
+usernameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmUsername(); });
+usernameModal.classList.add('show');
+setTimeout(()=>usernameInput.focus(), 100);
+
+/* ═══════════════ SCORE SAVING ═══════════════ */
+function getCurrentLevel(){
+  const v=document.getElementById('size-select').value;
+  return {15:'Easy',25:'Medium',35:'Hard',51:'Extreme'}[v]||'Medium';
+}
+
+async function saveScore(time, steps){
+  if(!username || username==='Anonymous') return;
+  try {
+    await fetch(`${SERVER}/scores`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ username, time, steps, level:getCurrentLevel() })
+    });
+  } catch(e){ console.warn('Could not save score (server not running)'); }
+}
+
+/* ═══════════════ LEADERBOARD ═══════════════ */
+const lbModal   = document.getElementById('lb-modal');
+const lbContent = document.getElementById('lb-content');
+let lbLevel     = 'Medium';
+
+document.querySelectorAll('.lb-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.lb-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    lbLevel = tab.dataset.level;
+    fetchLeaderboard();
+  });
+});
+
+async function fetchLeaderboard(){
+  lbContent.innerHTML='<div class="lb-empty">Loading...</div>';
+  try {
+    const res = await fetch(`${SERVER}/scores?level=${lbLevel}`);
+    const scores = await res.json();
+    if(!scores.length){
+      lbContent.innerHTML='<div class="lb-empty">No scores yet for this level!</div>';
+      return;
+    }
+    const medals=['🥇','🥈','🥉'];
+    lbContent.innerHTML=`<table class="lb-table">
+      <tr><th>#</th><th>Name</th><th>Time</th><th>Steps</th><th>Date</th></tr>
+      ${scores.map((s,i)=>`<tr>
+        <td>${medals[i]||i+1}</td>
+        <td>${s.username}</td>
+        <td>${s.time}s</td>
+        <td>${s.steps}</td>
+        <td>${s.date}</td>
+      </tr>`).join('')}
+    </table>`;
+  } catch(e){
+    lbContent.innerHTML='<div class="lb-empty">⚠️ Start server.py to see scores</div>';
+  }
+}
+
+document.getElementById('btn-scores').addEventListener('click', ()=>{
+  lbModal.classList.add('show');
+  fetchLeaderboard();
+});
+document.getElementById('lb-close').addEventListener('click', ()=>{
+  lbModal.classList.remove('show');
+});
+
+/* ═══════════════ 2-PLAYER MODE ═══════════════ */
+function show2PWinner(winner, time, steps){
+  const isP1 = winner===1;
+  document.getElementById('victory-text').textContent = isP1 ? '🟠 Player 1 Wins!!' : '🔵 Player 2 Wins!!';
+  victorySub.textContent = `⏱ ${time}s  ·  👣 ${steps} steps`;
+  victoryOverlay.classList.add('show');
+  spawnCelebration();
+  if(celebFrame) cancelAnimationFrame(celebFrame);
+  celebFrame = requestAnimationFrame(animateCelebration);
+  playApplause();
+}
+
+document.getElementById('btn-2p').addEventListener('click', ()=>{
+  if(busy) return;
+  twoPlayerMode = true;
+  p2Path=[]; p2Set=new Set(); p2Won=false;
+  playerPath=[]; pathSet=new Set(); playerWon=false;
+  autoVisited=null; autoSolution=null;
+  timerVal.textContent="00.0s"; stepsVal.textContent=0;
+  playMode=true;
+  canvas.classList.add("play-mode");
+  btnPlay.classList.remove("active");
+  btnSolve.disabled=true; btnReset.disabled=false;
+  drawAll();
+  setMode("play","🟠 P1: Arrow Keys  ·  🔵 P2: WASD  — Race to the exit!","2P");
+});
 
 btnGen.click();
 
