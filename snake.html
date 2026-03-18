@@ -1725,10 +1725,10 @@ victoryClose.addEventListener('click', ()=>{
 
 /* ═══════════════ מוזיקת רקע ═══════════════
  * מיוצרת דרך Web Audio API — ללא קובצי mp3.
- * גרף הצליל: אוסצילטורים → lowpass → masterGain → destination
- *                          → reverb (convolver) → reverbReturn → destination
- * כל תו מנוגן עם שני sine מנותקים מעט (chorus חמים).
- * BPM נמוך + reverb + lowpass = צליל רך ואמביינטי.
+ * גרף הצליל: אוסצילטורים → lowpass(5kHz) → masterGain → destination
+ *                          → reverb (convolver קצר) → reverbReturn → destination
+ * כל תו = 3 הרמוניות sine (בסיס + ×2 + ×3) — כמו גלוקנשפיל / פסנתר צעצוע.
+ * BPM 120, lowpass פתוח, reverb קליל = צליל בהיר, קופצני, מתאים לילדים.
  * ══════════════════════════════════════════ */
 let startMusic;
 (function(){
@@ -1746,66 +1746,74 @@ let startMusic;
   wrapper.appendChild(selectGroup);
   wrapper.appendChild(btn);
 
-  const BPM = 88;        // קצב שמח וקליל (אמביינטי אבל עם חיות)
-  const B   = 60 / BPM; // משך פעימה בשניות ≈ 0.68s
+  const BPM = 120;       // קצב קופצני ושמח — מתאים לילדים
+  const B   = 60 / BPM; // משך פעימה = 0.5s
 
   const F = {
     A2:110.00,
-    C3:130.81, F3:174.61, G3:196.00, A3:220.00,
+    C3:130.81, E3:164.81, F3:174.61, G3:196.00, A3:220.00,
     C4:261.63, D4:293.66, E4:329.63, F4:349.23, G4:392.00, A4:440.00, B4:493.88,
     C5:523.25, D5:587.33, E5:659.25, F5:698.46, G5:783.99, A5:880.00,
   };
 
-  // מלודיה שמחה וזורמת — C major, קפיצות עולות, תחושה קלילה
+  // מלודיה קופצנית ושמחה — C major, תנועה מהירה, תחושת ילדות
   const MELODY = [
-    // Phrase A — קפיצה שמחה כלפי מעלה
-    ['C5',1],['E5',1],['G5',2],['A5',1],['G5',1],
-    ['E5',1],['D5',1],['F5',2],
-    ['G5',1],['E5',1],['D5',2],
-    ['C5',4],
-    // Phrase B — ממשיך בקלילות
-    ['A4',1],['C5',1],['E5',1],['G5',1],
-    ['F5',1],['E5',1],['D5',2],
-    ['E5',1],['C5',1],['D5',1],['E5',1],
-    ['C5',2],['C5',2],
-    // Phrase C — bridge מרומם
+    // Phrase A — דהירה כלפי מעלה
+    ['C5',1],['E5',1],['G5',1],['E5',1],
     ['C5',1],['D5',1],['E5',2],
-    ['G5',1],['A5',1],['G5',2],
     ['F5',1],['E5',1],['D5',1],['C5',1],
-    ['G4',2],['E4',2],
-    // Phrase D — סיום עם חיוך
-    ['E5',1],['G5',1],['A5',2],
-    ['G5',1],['F5',1],['E5',2],
-    ['D5',1],['F5',1],['E5',1],['C5',1],
+    ['G4',2],['G4',2],
+    // Phrase B — קפיצות משחקיות
+    ['E5',1],['G5',1],['A5',1],['G5',1],
+    ['E5',1],['F5',1],['G5',2],
+    ['A5',1],['G5',1],['F5',1],['E5',1],
+    ['D5',2],['C5',2],
+    // Phrase C — bridge מרגש
+    ['G5',.5],['G5',.5],['A5',1],['G5',1],['F5',1],
+    ['E5',.5],['E5',.5],['F5',1],['E5',1],['D5',1],
+    ['C5',1],['D5',1],['E5',1],['F5',1],
+    ['G5',2],['G5',2],
+    // Phrase D — סיום שמח
+    ['C5',1],['G5',1],['E5',1],['C5',1],
+    ['D5',1],['A5',1],['F5',2],
+    ['G5',1],['E5',1],['D5',1],['C5',1],
     ['C5',4],
   ];
 
   // הרמוניה שקטה — שלישיות מתחת
   const HARMONY = [
-    ['A4',1],['C5',1],['E5',2],['F5',1],['E5',1],
-    ['C5',1],['B4',1],['D5',2],
-    ['E5',1],['C5',1],['B4',2],
-    ['A4',4],
-    ['F4',1],['A4',1],['C5',1],['E5',1],
-    ['D5',1],['C5',1],['B4',2],
-    ['C5',1],['A4',1],['B4',1],['C5',1],
-    ['A4',2],['A4',2],
+    ['A4',1],['C5',1],['E5',1],['C5',1],
     ['A4',1],['B4',1],['C5',2],
-    ['E5',1],['F5',1],['E5',2],
     ['D5',1],['C5',1],['B4',1],['A4',1],
-    ['E4',2],['C4',2],
-    ['C5',1],['E5',1],['F5',2],
-    ['E5',1],['D5',1],['C5',2],
-    ['B4',1],['D5',1],['C5',1],['A4',1],
+    ['E4',2],['E4',2],
+    ['C5',1],['E5',1],['F5',1],['E5',1],
+    ['C5',1],['D5',1],['E5',2],
+    ['F5',1],['E5',1],['D5',1],['C5',1],
+    ['B4',2],['A4',2],
+    ['E5',.5],['E5',.5],['F5',1],['E5',1],['D5',1],
+    ['C5',.5],['C5',.5],['D5',1],['C5',1],['B4',1],
+    ['A4',1],['B4',1],['C5',1],['D5',1],
+    ['E5',2],['E5',2],
+    ['A4',1],['E5',1],['C5',1],['A4',1],
+    ['B4',1],['F5',1],['D5',2],
+    ['E5',1],['C5',1],['B4',1],['A4',1],
     ['A4',4],
   ];
 
-  // בס שמח — תווים ארוכים, יציבים
+  // בס קופצני — root-fifth מתחלף, צועד עם הקצב
   const BASS = [
-    ['C3',8],['G3',8],
-    ['A2',8],['F3',8],
-    ['C3',8],['F3',8],
-    ['G3',8],['C3',8],
+    // Phrase A — C major
+    ['C3',1],['G3',1],['C4',1],['G3',1], ['C3',1],['G3',1],['C4',1],['G3',1],
+    ['C3',1],['G3',1],['C4',1],['G3',1], ['C3',1],['G3',1],['C3',2],
+    // Phrase B — G major
+    ['G3',1],['D4',1],['G3',1],['D4',1], ['G3',1],['D4',1],['G3',1],['D4',1],
+    ['G3',1],['D4',1],['G3',1],['D4',1], ['G3',2],['G3',2],
+    // Phrase C — Am → F
+    ['A2',1],['E3',1],['A3',1],['E3',1], ['A2',1],['E3',1],['A3',1],['E3',1],
+    ['F3',1],['C4',1],['F3',1],['C4',1], ['F3',1],['C4',1],['F3',2],
+    // Phrase D — G → C
+    ['G3',1],['D4',1],['G3',1],['D4',1], ['G3',1],['D4',1],['G3',1],['D4',1],
+    ['C3',1],['G3',1],['C4',1],['G3',1], ['C3',2],['C3',2],
   ];
 
   // buildGraph — בונה את גרף הצליל לאחר יצירת ה-AudioContext
@@ -1816,21 +1824,21 @@ let startMusic;
     // פילטר lowpass — מחליק תדרים חדים
     lowpass = ctx.createBiquadFilter();
     lowpass.type = 'lowpass';
-    lowpass.frequency.value = 2400; // פתוח יותר = צליל בהיר ושמח יותר
+    lowpass.frequency.value = 5000; // פתוח = צליל בהיר ונקי כמו גלוקנשפיל
     lowpass.Q.value = 0.4;
 
-    // reverb — impulse response מנויז מדועך (הדהוד)
+    // reverb — impulse response מנויז מדועך (הדהוד קצר וקליל)
     reverb = ctx.createConvolver();
-    const rate = ctx.sampleRate, len = Math.floor(rate * 2.2);
+    const rate = ctx.sampleRate, len = Math.floor(rate * 1.2);
     const ir = ctx.createBuffer(2, len, rate);
     for(let c=0;c<2;c++){
       const d = ir.getChannelData(c);
-      for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/len, 2.5);
+      for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/len, 3.5);
     }
     reverb.buffer = ir;
 
     reverbReturn = ctx.createGain();
-    reverbReturn.gain.value = 0.30; // עוצמת ההדהוד
+    reverbReturn.gain.value = 0.18; // הדהוד קליל — לא טובע את הצליל
 
     // חיבור הגרף
     lowpass.connect(masterGain);
@@ -1840,24 +1848,21 @@ let startMusic;
     reverbReturn.connect(ctx.destination);
   }
 
-  // tone — מנגן תו אחד עם 2 sine מנותקים מעט (chorus = חמימות)
+  // tone — מנגן תו עם 3 הרמוניות: בסיס + אוקטבה + קווינטה שנייה
+  // מדמה צליל של גלוקנשפיל / פסנתר צעצוע — בהיר, נקי, ילדותי
   function tone(freq, gain, t, dur){
-    [0, 7].forEach((detune, i) => {
+    [[freq, 1.0], [freq*2, 0.28], [freq*3, 0.07]].forEach(([f, rel]) => {
       const osc = ctx.createOscillator();
       const g   = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.value = freq;
-      osc.detune.value = detune;
+      osc.frequency.value = f;
       osc.connect(g);
       g.connect(lowpass);
-      const v   = gain * (i ? 0.45 : 1); // האוסצילטור השני שקט יותר
-      const atk = 0.09;
-      const rel = Math.min(dur * 0.4, 0.55);
+      const v = gain * rel;
       g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(v, t + atk);     // עלייה חלקה
-      g.gain.setValueAtTime(v, t + dur - rel);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur); // ירידה חלקה
-      osc.start(t); osc.stop(t + dur + 0.1);
+      g.gain.linearRampToValueAtTime(v, t + 0.012);   // התחלה פתאומית כמו פקפוק
+      g.gain.exponentialRampToValueAtTime(0.0001, t + Math.min(dur * 0.88, dur - 0.04));
+      osc.start(t); osc.stop(t + dur + 0.05);
     });
   }
 
