@@ -1,58 +1,62 @@
-# 🐍 Snake Game — Kids Maze Game
+# Snake Game — Kids Maze Game
 
-A fun and colorful maze game built for kids! Navigate through randomly generated mazes using your keyboard arrow keys.
+A fun and colorful maze game for kids! Navigate through randomly generated mazes using keyboard controls. Supports 1-player and 2-player modes.
 
-## 🎮 How to Play
+## How to Play
 
-1. Open `snake.html` in your browser
-2. Select a difficulty level
-3. Click **Play** to start
-4. Use the **arrow keys** to navigate through the maze
-5. Reach the 🟢 green exit to win!
+### Without a server (no leaderboard)
+Open `snake.html` directly in your browser — no installation needed.
 
-## ✨ Features
+### With the leaderboard server
+```bash
+python server.py
+```
+Then open [http://localhost:8080](http://localhost:8080)
 
-- 🎲 **Random maze generation** — every game is different
-- ⌨️ **Keyboard controls** — use arrow keys to move
-- 🏆 **4 difficulty levels** — Easy, Medium, Hard, Extreme
-- 🤖 **Auto Solve** — watch the maze solve itself with BFS
-- 🎵 **Background music** — cheerful looping melody
-- 🎉 **Victory screen** — confetti, balloons & applause when you win
-- 🐍 **Animated snakes** in the background
-- ⏱️ **Timer & step counter**
+## Game Modes
 
-## 🕹️ Controls
+### 1 Player
+- Use **arrow keys** to navigate from the blue square to the house exit
+- Finish as fast as possible — your time and steps are recorded
+- Top scores appear on the side leaderboard
 
-| Key | Action |
-|-----|--------|
-| ⬆️ Arrow Up | Move up |
-| ⬇️ Arrow Down | Move down |
-| ⬅️ Arrow Left | Move left |
-| ➡️ Arrow Right | Move right |
-| Hold key | Run continuously |
+### 2 Players (same keyboard)
+| Player | Controls |
+|--------|----------|
+| 🟠 Player 1 | Arrow keys |
+| 🔵 Player 2 | WASD |
 
-## 📁 Files
+Race to the exit — first to arrive wins!
+
+## Features
+
+- **Random maze generation** — every game is unique
+- **4 difficulty levels** — Easy, Medium, Hard, Extreme
+- **Auto Solve** — BFS shortest-path animation
+- **1P leaderboard** — saved scores per difficulty level (requires `server.py`)
+- **2P wins scoreboard** — tracks wins per session
+- **Switch modes** — toggle between 1P and 2P mid-session
+- **Background music** — looping melody with toggle button
+- **Victory screen** — confetti, balloons & applause
+
+## Files
 
 | File | Description |
 |------|-------------|
-| `snake.html` | The main game (open this in your browser) |
-| `code.py` | Terminal version of the maze (Python) |
+| `snake.html` | Main game — open in any modern browser |
+| `server.py` | Flask backend — saves scores to `scores.json` |
+| `maze_terminal.py` | Terminal version of the maze (Python, no browser needed) |
 
-## 🚀 Getting Started
-
-No installation needed! Just open `snake.html` in any modern browser.
+## Running the Terminal Version
 
 ```bash
-# Clone the repo
-git clone https://github.com/matanshneor/snake_game.git
-
-# Open the game
-open snake.html
+python maze_terminal.py
 ```
+Navigate with arrow keys or WASD. Press **Q** to quit.
 
-## 🛠️ Built With
+## Tech Stack
 
 - **HTML5 Canvas** — maze rendering
 - **Web Audio API** — background music & sound effects
 - **Vanilla JavaScript** — no libraries or frameworks
-- **Python** — terminal version
+- **Python / Flask** — optional backend for the leaderboard

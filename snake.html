@@ -167,6 +167,22 @@ body {
   background:rgba(46,204,113,.08);
   border:1px solid rgba(46,204,113,.3);
 }
+.switch-mode-btn {
+  width:100%; padding:7px 8px; border-radius:20px; border:none;
+  font-family:var(--font-ui); font-size:11px; font-weight:800;
+  cursor:pointer; text-transform:uppercase; letter-spacing:.04em;
+  margin-top:4px;
+  transition:filter .15s, transform .1s;
+}
+#btn-switch-2p {
+  background:linear-gradient(135deg,var(--c-blue),#1a78d4);
+  color:white; box-shadow:0 3px 10px rgba(59,158,255,.3);
+}
+#btn-switch-1p {
+  background:linear-gradient(135deg,var(--c-orange),#e05b00);
+  color:white; box-shadow:0 3px 10px rgba(255,127,63,.3);
+}
+.switch-mode-btn:hover { filter:brightness(1.1); transform:translateY(-1px); }
 
 /* ── wrapper ── */
 .game-wrapper {
@@ -372,14 +388,17 @@ select.ctrl-select option { background:#185a9d; color:white; }
 
 /* ── canvas area ── */
 .canvas-container {
-  background:linear-gradient(160deg, #e8f4fd 0%, #f0f0ff 100%);
+  background:
+    radial-gradient(ellipse at 30% 40%, #5aab35 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 70%, #3d8a22 0%, transparent 50%),
+    #4a9230;
   display:flex; align-items:center; justify-content:center;
   padding:28px; min-height:460px;
   position:relative;
 }
 canvas {
-  display:block; border-radius:12px; position:relative; z-index:1;
-  box-shadow: 0 4px 24px rgba(59,158,255,.15), 0 2px 8px rgba(0,0,0,.08);
+  display:block; border-radius:16px; position:relative; z-index:1;
+  box-shadow: 0 8px 40px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.25);
   transition:box-shadow .3s;
 }
 canvas.play-mode { cursor:crosshair; }
@@ -556,23 +575,25 @@ canvas.revealed  { animation:maze-reveal .3s ease-out; }
       <canvas id="maze-canvas" role="img" aria-label="Maze"></canvas>
     </div>
     <div id="sp-leaderboard">
-      <div class="sp-lb-title">🏆 שיאים</div>
+      <div class="sp-lb-title">🏆 Records</div>
       <div class="sp-lb-level" id="sp-lb-level">Medium</div>
-      <div id="sp-lb-rows"><div class="sp-lb-empty">טוען...</div></div>
+      <div id="sp-lb-rows"><div class="sp-lb-empty">Loading...</div></div>
+      <button class="switch-mode-btn" id="btn-switch-2p">👥 שני שחקנים</button>
     </div>
     <div id="p2-scoreboard">
-      <div class="sb-title">ניצחונות</div>
+      <div class="sb-title">Wins</div>
       <div class="sb-player p1">
         <div class="sb-player-name" id="sb-p1-name">שחקן 1</div>
         <div class="sb-wins" id="sb-p1-wins">0</div>
-        <div class="sb-label">נצחונות</div>
+        <div class="sb-label">Wins</div>
       </div>
       <div class="sb-divider"></div>
       <div class="sb-player p2">
         <div class="sb-player-name" id="sb-p2-name">שחקן 2</div>
         <div class="sb-wins" id="sb-p2-wins">0</div>
-        <div class="sb-label">נצחונות</div>
+        <div class="sb-label">Wins</div>
       </div>
+      <button class="switch-mode-btn" id="btn-switch-1p">👤 שחקן אחד</button>
     </div>
   </div>
 
@@ -608,11 +629,11 @@ canvas.revealed  { animation:maze-reveal .3s ease-out; }
 
     <!-- Step 2b: 2-player names -->
     <div id="setup-step2-2p" style="display:none">
-      <div class="modal-sub" style="color:var(--c-orange)">🟠 שחקן 1 (מקשי חץ)</div>
-      <input class="modal-input" id="p1-name-input" type="text" maxlength="20" placeholder="שם שחקן 1..." autocomplete="off" dir="auto"/>
-      <div class="modal-sub" style="color:var(--c-blue);margin-top:8px">🔵 שחקן 2 (WASD)</div>
-      <input class="modal-input" id="p2-name-input" type="text" maxlength="20" placeholder="שם שחקן 2..." autocomplete="off" dir="auto"/>
-      <button class="modal-btn" id="btn-2p-confirm" style="background:var(--c-blue)">יאללה! 🎮</button>
+      <div class="modal-sub" style="color:var(--c-orange)">🟠 player 1 (Arrow keys)</div>
+      <input class="modal-input" id="p1-name-input" type="text" maxlength="20" placeholder="player 1..." autocomplete="off" dir="auto"/>
+      <div class="modal-sub" style="color:var(--c-blue);margin-top:8px">🔵 player 2 (WASD)</div>
+      <input class="modal-input" id="p2-name-input" type="text" maxlength="20" placeholder="player 2..." autocomplete="off" dir="auto"/>
+      <button class="modal-btn" id="btn-2p-confirm" style="background:var(--c-blue)">LET'S PLAY🎮</button>
     </div>
   </div>
 </div>
@@ -708,90 +729,254 @@ function bfs(g,start,end){
 }
 
 /* ═══════════════ DRAW ═══════════════ */
+const PAD=2, TILE_R=4;
 function cellCenter(r,c){ return[c*CELL+CELL/2, r*CELL+CELL/2]; }
 
-function drawAll(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+/* ── pre-rendered background (grass + dirt paths) ── */
+let bgCanvas=null;
 
+function renderBg(){
+  bgCanvas=document.createElement('canvas');
+  bgCanvas.width=canvas.width; bgCanvas.height=canvas.height;
+  const bc=bgCanvas.getContext('2d');
+
+  // seeded LCG for stable randomness across redraws
+  let seed=0x5EED1234;
+  function rnd(){ seed=(Math.imul(seed,1664525)+1013904223)>>>0; return seed/0xFFFFFFFF; }
+
+  // ── grass base ──
+  const gBase=bc.createLinearGradient(0,0,canvas.width,canvas.height);
+  gBase.addColorStop(0,'#5aaa32'); gBase.addColorStop(0.5,'#4a8f26'); gBase.addColorStop(1,'#3c7520');
+  bc.fillStyle=gBase; bc.fillRect(0,0,bgCanvas.width,bgCanvas.height);
+
+  // ── grass blades on wall cells ──
   for(let r=0;r<ROWS;r++){
     for(let c=0;c<COLS;c++){
-      const x=c*CELL, y=r*CELL;
-      const key=`${r},${c}`;
-
-      if(grid[r][c]===1){
-        // wall — warm blue-gray
-        ctx.fillStyle="#5b8db8"; ctx.fillRect(x,y,CELL,CELL);
-        ctx.fillStyle="#7aafd4"; ctx.fillRect(x,y,CELL,1);
-        ctx.fillStyle="#4a7aa0"; ctx.fillRect(x,CELL-1+y,CELL,1);
-      } else {
-        // floor — soft warm white checkerboard
-        ctx.fillStyle=(r+c)%2===0?"#f5fbff":"#eaf4ff";
-        ctx.fillRect(x,y,CELL,CELL);
-      }
-
-      // auto-solve visited — light yellow
-      if(autoVisited?.has(key)&&!autoSolution?.has(key)){
-        ctx.fillStyle="rgba(255,200,0,0.30)"; ctx.fillRect(x,y,CELL,CELL);
-      }
-      // auto-solve solution — bright purple
-      if(autoSolution?.has(key)){
-        ctx.fillStyle="rgba(168,85,247,0.55)"; ctx.fillRect(x,y,CELL,CELL);
+      if(grid[r][c]!==1) continue;
+      const bx=c*CELL, by=r*CELL;
+      const blades=5+Math.floor(rnd()*4);
+      for(let i=0;i<blades;i++){
+        const x=bx+rnd()*CELL;
+        const y=by+rnd()*CELL;
+        const h=CELL*0.35+rnd()*CELL*0.35;
+        const lean=(rnd()-.5)*CELL*0.4;
+        const g=110+Math.floor(rnd()*80);
+        const darkness=rnd();
+        bc.strokeStyle=`rgba(${30+Math.floor(rnd()*20)},${g},${20+Math.floor(rnd()*18)},${0.55+darkness*0.45})`;
+        bc.lineWidth=0.8+rnd()*0.7;
+        bc.beginPath();
+        bc.moveTo(x,y);
+        bc.quadraticCurveTo(x+lean*.5, y-h*.55, x+lean, y-h);
+        bc.stroke();
       }
     }
   }
 
-  // start cell — bright cyan/blue
-  {
-    const x=1*CELL, y=1*CELL;
-    ctx.fillStyle="rgba(59,158,255,0.25)"; ctx.fillRect(x,y,CELL,CELL);
-    ctx.strokeStyle="#3b9eff"; ctx.lineWidth=2;
-    ctx.strokeRect(x+1,y+1,CELL-2,CELL-2);
+  // ── dirt path — unified seamless fill (no gaps between cells) ──
+  // pass 1: flat fill so adjacent cells merge into one continuous surface
+  bc.fillStyle='#b8844a';
+  for(let r=0;r<ROWS;r++)
+    for(let c=0;c<COLS;c++)
+      if(grid[r][c]===0) bc.fillRect(c*CELL, r*CELL, CELL, CELL);
+
+  // pass 2: warm vertical gradient tint over the merged surface
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(grid[r][c]!==0) continue;
+      const px=c*CELL, py=r*CELL;
+      const dirtG=bc.createLinearGradient(px,py,px,py+CELL);
+      dirtG.addColorStop(0,'rgba(220,160,90,0.22)');
+      dirtG.addColorStop(1,'rgba(80,40,10,0.18)');
+      bc.fillStyle=dirtG; bc.fillRect(px,py,CELL,CELL);
+    }
   }
 
-  // end cell — bright green
-  {
-    const x=(COLS-2)*CELL, y=(ROWS-2)*CELL;
-    ctx.fillStyle="rgba(46,204,113,0.25)"; ctx.fillRect(x,y,CELL,CELL);
-    ctx.strokeStyle="#2ecc71"; ctx.lineWidth=2;
-    ctx.strokeRect(x+1,y+1,CELL-2,CELL-2);
+  // pass 3: scattered pebbles / colour variation across the whole path area
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(grid[r][c]!==0) continue;
+      const px=c*CELL, py=r*CELL;
+      for(let i=0;i<5;i++){
+        const sx=px+rnd()*CELL;
+        const sy=py+rnd()*CELL;
+        const sr=0.4+rnd()*1.3;
+        bc.fillStyle=rnd()>.5
+          ?`rgba(0,0,0,${0.07+rnd()*.11})`
+          :`rgba(255,220,160,${0.07+rnd()*.09})`;
+        bc.beginPath(); bc.arc(sx,sy,sr,0,Math.PI*2); bc.fill();
+      }
+    }
   }
 
-  // player 1 trail — orange
-  for(let i=0;i<playerPath.length-1;i++){
-    const[r,c]=playerPath[i];
-    ctx.fillStyle='rgba(255,127,63,0.55)';
-    ctx.fillRect(c*CELL+1,r*CELL+1,CELL-2,CELL-2);
+  // pass 4: soft shadow along grass-path edges so path looks sunken
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(grid[r][c]!==0) continue;
+      const px=c*CELL, py=r*CELL;
+      // check each neighbour; if wall → draw shadow strip on that edge
+      const nb=[[-1,0,'top'],[1,0,'bot'],[0,-1,'left'],[0,1,'right']];
+      for(const[dr,dc,side] of nb){
+        const nr=r+dr, nc=c+dc;
+        if(nr<0||nr>=ROWS||nc<0||nc>=COLS||grid[nr][nc]!==1) continue;
+        bc.fillStyle='rgba(0,0,0,0.18)';
+        const sz=Math.ceil(CELL*0.28);
+        if(side==='top')   bc.fillRect(px,py,CELL,sz);
+        if(side==='bot')   bc.fillRect(px,py+CELL-sz,CELL,sz);
+        if(side==='left')  bc.fillRect(px,py,sz,CELL);
+        if(side==='right') bc.fillRect(px+CELL-sz,py,sz,CELL);
+      }
+    }
   }
+}
+
+function roundCell(c,x,y,w,h,r){ c.beginPath(); c.roundRect(x,y,w,h,r); c.fill(); }
+function strokeCell(c,x,y,w,h,r){ c.beginPath(); c.roundRect(x,y,w,h,r); c.stroke(); }
+
+function drawKid(ctx, cx, cy, cell, player){
+  const color = player === 1 ? '#ff7f3f' : '#3b9eff';
+  const r = cell * 0.38;
+  // body
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+  // eyes
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(cx - r*0.28, cy - r*0.18, r*0.18, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + r*0.28, cy - r*0.18, r*0.18, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.arc(cx - r*0.24, cy - r*0.16, r*0.09, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + r*0.24, cy - r*0.16, r*0.09, 0, Math.PI*2); ctx.fill();
+  // smile
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = r*0.12;
+  ctx.beginPath(); ctx.arc(cx, cy + r*0.1, r*0.28, 0.15, Math.PI - 0.15); ctx.stroke();
+}
+
+function drawSmoothPath(path, color, glowColor){
+  if(path.length<2) return;
+  ctx.save();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=CELL*0.62;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.shadowColor=glowColor;
+  ctx.shadowBlur=10;
+  ctx.beginPath();
+  const[r0,c0]=path[0];
+  ctx.moveTo(c0*CELL+CELL/2, r0*CELL+CELL/2);
+  for(let i=1;i<path.length;i++){
+    const[r,c]=path[i];
+    ctx.lineTo(c*CELL+CELL/2, r*CELL+CELL/2);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawAll(){
+  // blit pre-rendered background
+  if(bgCanvas) ctx.drawImage(bgCanvas,0,0);
+
+  // overlays for auto-solve
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(grid[r][c]!==0) continue;
+      const key=`${r},${c}`;
+      const x=c*CELL+PAD, y=r*CELL+PAD, w=CELL-PAD*2, h=CELL-PAD*2;
+      if(autoVisited?.has(key)&&!autoSolution?.has(key)){
+        ctx.fillStyle='rgba(255,220,0,0.38)';
+        roundCell(ctx,x,y,w,h,TILE_R);
+      }
+      if(autoSolution?.has(key)){
+        ctx.fillStyle='rgba(168,85,247,0.62)';
+        roundCell(ctx,x,y,w,h,TILE_R);
+      }
+    }
+  }
+
+  // start cell — blue beacon
+  {
+    const x=1*CELL+PAD, y=1*CELL+PAD, w=CELL-PAD*2, h=CELL-PAD*2;
+    ctx.fillStyle='rgba(59,158,255,0.45)'; roundCell(ctx,x,y,w,h,TILE_R);
+    ctx.strokeStyle='#3b9eff'; ctx.lineWidth=2.5;
+    strokeCell(ctx,x+1,y+1,w-2,h-2,TILE_R);
+  }
+
+  // end cell — house icon
+  {
+    const cx=(COLS-2)*CELL+CELL/2, cy=(ROWS-2)*CELL+CELL/2;
+    const s=CELL*1.5; // scale relative to cell
+    const left=cx-s*0.44, right=cx+s*0.44;
+    const roofTop=cy-s*0.46, roofBase=cy-s*0.04;
+    const wallBot=cy+s*0.44;
+    const dw=s*0.22, dh=s*0.30, dx=cx-dw/2, dy=wallBot-dh;
+
+    ctx.save();
+    // glow
+    ctx.shadowColor='rgba(255,220,80,0.7)'; ctx.shadowBlur=8;
+
+    // roof
+    ctx.fillStyle='#d94f3a';
+    ctx.beginPath();
+    ctx.moveTo(cx, roofTop);
+    ctx.lineTo(right+s*0.06, roofBase);
+    ctx.lineTo(left-s*0.06, roofBase);
+    ctx.closePath(); ctx.fill();
+
+    ctx.shadowBlur=0;
+
+    // walls
+    ctx.fillStyle='#f5e6c8';
+    ctx.beginPath();
+    ctx.roundRect(left, roofBase, right-left, wallBot-roofBase, 1);
+    ctx.fill();
+
+    // door
+    ctx.fillStyle='#7a4a20';
+    ctx.beginPath();
+    ctx.roundRect(dx, dy, dw, dh, [2,2,0,0]);
+    ctx.fill();
+
+    // door knob
+    ctx.fillStyle='#ffd700';
+    ctx.beginPath();
+    ctx.arc(dx+dw*0.75, dy+dh*0.55, s*0.04, 0, Math.PI*2);
+    ctx.fill();
+
+    // window
+    const wx=cx-s*0.26, wy=roofBase+s*0.06, wsz=s*0.18;
+    ctx.fillStyle='#aee4ff';
+    ctx.beginPath(); ctx.roundRect(wx, wy, wsz, wsz, 1); ctx.fill();
+    ctx.strokeStyle='#7ab'; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.moveTo(wx+wsz/2,wy); ctx.lineTo(wx+wsz/2,wy+wsz); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wx,wy+wsz/2); ctx.lineTo(wx+wsz,wy+wsz/2); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // player 1 trail — worn dark earth
+  if(playerPath.length>1)
+    drawSmoothPath(playerPath.slice(0,-1),'rgba(130,70,20,0.88)','rgba(200,130,50,0.45)');
 
   // player 2 trail — blue
-  for(let i=0;i<p2Path.length-1;i++){
-    const[r,c]=p2Path[i];
-    ctx.fillStyle='rgba(59,158,255,0.55)';
-    ctx.fillRect(c*CELL+1,r*CELL+1,CELL-2,CELL-2);
+  if(p2Path.length>1)
+    drawSmoothPath(p2Path.slice(0,-1),'rgba(30,110,220,0.88)','rgba(59,158,255,0.45)');
+
+  // player 1 kid — show at start even before moving
+  if(!playerWon){
+    const[r,c]=playerPath.length>0 ? playerPath[playerPath.length-1] : [1,1];
+    const[cx2,cy2]=cellCenter(r,c);
+    ctx.save();
+    ctx.shadowColor='rgba(255,140,40,.7)'; ctx.shadowBlur=12;
+    drawKid(ctx, cx2, cy2, CELL, 1);
+    ctx.restore();
   }
 
-  // player 1 head — orange
-  if(playerPath.length>0&&!playerWon){
-    const[r,c]=playerPath[playerPath.length-1];
+  // player 2 kid — show at start even before moving
+  if(twoPlayerMode&&!p2Won){
+    const[r,c]=p2Path.length>0 ? p2Path[p2Path.length-1] : [1,1];
     const[cx2,cy2]=cellCenter(r,c);
-    ctx.shadowColor="rgba(255,127,63,.5)"; ctx.shadowBlur=10;
-    ctx.fillStyle="#ff7f3f";
-    ctx.beginPath(); ctx.arc(cx2,cy2,CELL*.38,0,Math.PI*2); ctx.fill();
-    ctx.shadowBlur=0;
-    ctx.fillStyle="#fff";
-    ctx.beginPath(); ctx.arc(cx2,cy2,CELL*.15,0,Math.PI*2); ctx.fill();
-  }
-
-  // player 2 head — blue
-  if(p2Path.length>0&&!p2Won){
-    const[r,c]=p2Path[p2Path.length-1];
-    const[cx2,cy2]=cellCenter(r,c);
-    ctx.shadowColor="rgba(59,158,255,.5)"; ctx.shadowBlur=10;
-    ctx.fillStyle="#3b9eff";
-    ctx.beginPath(); ctx.arc(cx2,cy2,CELL*.38,0,Math.PI*2); ctx.fill();
-    ctx.shadowBlur=0;
-    ctx.fillStyle="#fff";
-    ctx.beginPath(); ctx.arc(cx2,cy2,CELL*.15,0,Math.PI*2); ctx.fill();
+    ctx.save();
+    ctx.shadowColor='rgba(59,158,255,.7)'; ctx.shadowBlur=12;
+    drawKid(ctx, cx2, cy2, CELL, 2);
+    ctx.restore();
   }
 }
 
@@ -1015,6 +1200,7 @@ btnGen.addEventListener("click",()=>{
 
   statusGrid.textContent=`${COLS}×${ROWS}`;
   grid=generateMaze(ROWS,COLS);
+  bgCanvas=null; renderBg();
   canvas.classList.add("revealed");
   setTimeout(()=>canvas.classList.remove("revealed"),350);
   drawAll();
@@ -1194,6 +1380,7 @@ function start2PMode(){
   btnPlay.classList.remove("active");
   btnSolve.disabled=true; btnReset.disabled=false;
   updateScoreboard();
+  spLbPanel.classList.remove('show');
   document.getElementById('p2-scoreboard').classList.add('show');
   startMusic();
   drawAll();
@@ -1204,7 +1391,43 @@ document.getElementById('p2-name-input').addEventListener('keydown', e=>{
   if(e.key==='Enter') start2PMode();
 });
 
+// Switch from 1P → 2P
+document.getElementById('btn-switch-2p').addEventListener('click', ()=>{
+  step1.style.display = 'none';
+  step2_1p.style.display = 'none';
+  step2_2p.style.display = 'block';
+  const p1Input = document.getElementById('p1-name-input');
+  const p2Input = document.getElementById('p2-name-input');
+  p1Input.value = ''; p2Input.value = '';
+  usernameModal.classList.add('show');
+  setTimeout(()=>p1Input.focus(), 50);
+});
+
+// Switch from 2P → 1P
+document.getElementById('btn-switch-1p').addEventListener('click', ()=>{
+  if(animFrame){ clearTimeout(animFrame); animFrame=null; }
+  stopTimer(); busy=false; playMode=false;
+  p2Won=false; p2Path=[]; p2Set=new Set(); clearInterval(p2MoveInterval); p2HeldKey=null;
+  twoPlayerMode=false;
+  playerPath=[]; pathSet=new Set(); playerWon=false;
+  autoVisited=null; autoSolution=null;
+  canvas.classList.remove('play-mode','victory');
+  btnPlay.classList.remove('active');
+  btnPlay.textContent='Play';
+  timerVal.textContent='00.0s'; stepsVal.textContent='—';
+  document.getElementById('p2-scoreboard').classList.remove('show');
+  drawAll();
+  // Show 1P name entry
+  step1.style.display = 'none';
+  step2_2p.style.display = 'none';
+  step2_1p.style.display = 'block';
+  usernameInput.value = '';
+  usernameModal.classList.add('show');
+  setTimeout(()=>usernameInput.focus(), 50);
+});
+
 usernameModal.classList.add('show');
+btnGen.click(); // auto-generate maze on load so kids appear and Play is enabled
 
 /* ═══════════════ SCORE SAVING ═══════════════ */
 function getCurrentLevel(){
@@ -1266,8 +1489,8 @@ function show2PWinner(winner, time, steps){
   const isP1 = winner===1;
   if(isP1) p1Wins++; else p2Wins++;
   updateScoreboard();
-  const winnerName = isP1 ? (username||'שחקן 1') : (p2Name||'שחקן 2');
-  document.getElementById('victory-text').textContent = (isP1 ? '🟠 ' : '🔵 ') + winnerName + ' מנצח!!';
+  const winnerName = isP1 ? (username||'player 1') : (p2Name||'player 2');
+  document.getElementById('victory-text').textContent = (isP1 ? '🟠 ' : '🔵 ') + winnerName + 'is the winner!!';
 
   victorySub.textContent = `⏱ ${time}s  ·  👣 ${steps} steps`;
   victoryOverlay.classList.add('show');
