@@ -649,64 +649,101 @@ canvas.revealed  { animation:maze-reveal .3s ease-out; }
 </div>
 
 <script>
-const canvas    = document.getElementById("maze-canvas");
-const ctx       = canvas.getContext("2d");
-const btnGen    = document.getElementById("btn-generate");
-const btnPlay   = document.getElementById("btn-play");
-const btnSolve  = document.getElementById("btn-solve");
-const btnReset  = document.getElementById("btn-reset");
-const timerVal  = document.getElementById("timer-val");
-const stepsVal  = document.getElementById("steps-val");
-const modeBadge = document.getElementById("mode-badge");
-const hintText  = document.getElementById("hint-text");
-const coordDisp = document.getElementById("coord-display");
-const statusMode= document.getElementById("status-mode");
-const statusGrid= document.getElementById("status-grid");
+/*
+ * ════════════════════════════════════════════════════════
+ *  SNAKE GAME — לוגיקת המשחק הראשית
+ * ════════════════════════════════════════════════════════
+ *
+ *  מבנה הקוד:
+ *    1. משתנים גלובליים
+ *    2. יצירת מבוך (generateMaze, shuffle)
+ *    3. פתרון אוטומטי BFS (bfs)
+ *    4. ציור (renderBg, drawAll, drawKid, drawSmoothPath)
+ *    5. שעון עצר (startTimer, stopTimer)
+ *    6. תנועת שחקן 1 — עכבר ומקלדת (tryMove, doKeyMove)
+ *    7. תנועת שחקן 2 — WASD (tryMove2, doP2Move)
+ *    8. כפתורי ממשק (btnGen, btnPlay, btnSolve, btnReset)
+ *    9. מודל הגדרת שמות (confirmUsername, start2PMode)
+ *   10. מעבר בין מצבים (btn-switch-1p, btn-switch-2p)
+ *   11. שמירת ניקודים ולוח שיאים
+ *   12. חגיגת ניצחון (קונפטי, בלונים)
+ *   13. מוזיקת רקע (Web Audio API)
+ */
 
-let ROWS=25, COLS=25, CELL=20;
-let grid=[];
-let animFrame=null;
-let busy=false;
+/* ── אלמנטי ממשק המשתמש ── */
+const canvas    = document.getElementById("maze-canvas"); // קנבס ציור המבוך
+const ctx       = canvas.getContext("2d");                // הקשר הגרפי לציור
+const btnGen    = document.getElementById("btn-generate"); // כפתור "מבוך חדש"
+const btnPlay   = document.getElementById("btn-play");     // כפתור "Play / Stop"
+const btnSolve  = document.getElementById("btn-solve");    // כפתור "Auto Solve"
+const btnReset  = document.getElementById("btn-reset");    // כפתור "Clear"
+const timerVal  = document.getElementById("timer-val");    // תצוגת זמן
+const stepsVal  = document.getElementById("steps-val");    // תצוגת מספר צעדים
+const modeBadge = document.getElementById("mode-badge");   // תגית מצב (IDLE/PLAY/SOLVE)
+const hintText  = document.getElementById("hint-text");    // הוראות למשתמש
+const coordDisp = document.getElementById("coord-display"); // תצוגת קואורדינטות עכבר
+const statusMode= document.getElementById("status-mode");  // מצב בשורת הסטטוס
+const statusGrid= document.getElementById("status-grid");  // גודל המבוך בשורת הסטטוס
 
-// username
-let username = '';
-let p2Name = '';
-let p1Wins = 0, p2Wins = 0;
-const SERVER = 'http://localhost:8080';
+/* ── מצב המבוך ── */
+let ROWS=25, COLS=25, CELL=20; // גודל הרשת (שורות/עמודות) וגודל כל תא בפיקסלים
+let grid=[];                    // מערך דו-מימדי: 1 = קיר, 0 = נתיב פתוח
+let animFrame=null;             // מזהה ה-timeout של אנימציית הפתרון האוטומטי
+let busy=false;                 // true כשפתרון אוטומטי פעיל — חוסם לחיצות אחרות
 
-// player 1 state
-let playMode=false, playerWon=false;
-let playerPath=[], pathSet=new Set();
+/* ── שמות שחקנים וניקודים ── */
+let username = '';              // שם שחקן 1
+let p2Name = '';                // שם שחקן 2
+let p1Wins = 0, p2Wins = 0;    // מונה ניצחונות לכל שחקן (מתאפס עם טעינת הדף)
+const SERVER = 'http://localhost:8080'; // כתובת שרת הניקודים (server.py)
 
-// player 2 state
-let twoPlayerMode=false, p2Won=false;
-let p2Path=[], p2Set=new Set();
-let p2HeldKey=null, p2MoveInterval=null;
-const P2_MAP={'KeyW':[-1,0],'KeyS':[1,0],'KeyA':[0,-1],'KeyD':[0,1]};
-let dragging=false;
-let timerStart=null, timerInterval=null, elapsed=0;
+/* ── מצב שחקן 1 ── */
+let playMode=false, playerWon=false; // האם מצב משחק פעיל / האם השחקן הגיע ליעד
+let playerPath=[], pathSet=new Set(); // מסלול השחקן כרשימת תאים + Set למניעת חזרה
 
-// auto-solve state
-let autoVisited=null, autoSolution=null;
+/* ── מצב שחקן 2 ── */
+let twoPlayerMode=false, p2Won=false;  // האם מצב 2 שחקנים פעיל / האם שחקן 2 ניצח
+let p2Path=[], p2Set=new Set();         // מסלול שחקן 2
+let p2HeldKey=null, p2MoveInterval=null; // מקש לחוץ כרגע + interval לתנועה חלקה
+const P2_MAP={'KeyW':[-1,0],'KeyS':[1,0],'KeyA':[0,-1],'KeyD':[0,1]}; // מיפוי WASD
+let dragging=false;                     // האם המשתמש גורר עם העכבר על הקנבס
+let timerStart=null, timerInterval=null, elapsed=0; // שעון עצר: נקודת התחלה, interval, זמן שעבר
 
-/* ═══════════════ MAZE GEN ═══════════════ */
+/* ── מצב פתרון אוטומטי ── */
+let autoVisited=null, autoSolution=null; // תאים שבוקרו ב-BFS / תאי הנתיב הקצר ביותר
+
+/* ═══════════════ יצירת מבוך ═══════════════
+ * שיטה: Recursive Backtracking (DFS אקראי)
+ * הרשת בנויה מתאים בגודל אחיד; הקואורדינטות האי-זוגיות הן תאי "חדר",
+ * הזוגיות הן קירות. הפונקציה carve מנפצת קירות ויוצרת נתיבים.
+ * ══════════════════════════════════════════ */
 function generateMaze(rows,cols){
+  // אתחול: כל התאים קירות (1)
   const g=Array.from({length:rows},()=>Array(cols).fill(1));
+
+  // carve: פותח נתיב מהתא הנוכחי לכיוונים אקראיים
   function carve(r,c){
-    g[r][c]=0;
+    g[r][c]=0; // פותח את התא הנוכחי
     for(const[dr,dc]of shuffle([[-2,0],[2,0],[0,-2],[0,2]])){
       const nr=r+dr,nc=c+dc;
       if(nr>0&&nr<rows&&nc>0&&nc<cols&&g[nr][nc]===1){
-        g[r+dr/2][c+dc/2]=0; carve(nr,nc);
+        g[r+dr/2][c+dc/2]=0; // מנפץ את הקיר בין התאים
+        carve(nr,nc);
       }
     }
   }
   carve(1,1);
+  // פתיחת כניסה (שורה 0) ויציאה (שורה אחרונה)
   g[0][1]=0; g[rows-1][cols-2]=0;
   return g;
 }
 
-/* ═══════════════ BFS ═══════════════ */
+/* ═══════════════ פתרון אוטומטי — BFS ═══════════════
+ * Breadth-First Search: מוצא את הנתיב הקצר ביותר מ-start ל-end.
+ * מחזיר:
+ *   order — סדר הביקור בתאים (לאנימציית החיפוש)
+ *   path  — הנתיב הקצר ביותר (לאנימציית הפתרון)
+ * ══════════════════════════════════════════════════ */
 function bfs(g,start,end){
   const rows=g.length,cols=g[0].length;
   const vis=Array.from({length:rows},()=>Array(cols).fill(false));
@@ -728,13 +765,17 @@ function bfs(g,start,end){
   return{order,path};
 }
 
-/* ═══════════════ DRAW ═══════════════ */
-const PAD=2, TILE_R=4;
-function cellCenter(r,c){ return[c*CELL+CELL/2, r*CELL+CELL/2]; }
+/* ═══════════════ ציור ═══════════════ */
+const PAD=2, TILE_R=4; // ריפוד פנימי ורדיוס פינות לתאים
+function cellCenter(r,c){ return[c*CELL+CELL/2, r*CELL+CELL/2]; } // מרכז תא בפיקסלים
 
-/* ── pre-rendered background (grass + dirt paths) ── */
-let bgCanvas=null;
+/* ── רקע מעובד מראש (דשא + שבילי עפר) ──
+ * renderBg מצייר לקנבס נפרד (offscreen) כדי שלא נחשב מחדש בכל frame.
+ * drawAll מדביק אותו על הקנבס הראשי בקריאה אחת מהירה.
+ * ── */
+let bgCanvas=null; // הקנבס הסמוי שמכיל את הרקע המוכן
 
+// renderBg — מצייר את רקע המבוך: דשא על קירות, שביל עפר על נתיבים
 function renderBg(){
   bgCanvas=document.createElement('canvas');
   bgCanvas.width=canvas.width; bgCanvas.height=canvas.height;
@@ -829,9 +870,12 @@ function renderBg(){
   }
 }
 
+// עזרים לציור מלבן עם פינות מעוגלות (fill / stroke)
 function roundCell(c,x,y,w,h,r){ c.beginPath(); c.roundRect(x,y,w,h,r); c.fill(); }
 function strokeCell(c,x,y,w,h,r){ c.beginPath(); c.roundRect(x,y,w,h,r); c.stroke(); }
 
+// drawKid — מצייר את דמות השחקן (עיגול עם עיניים וחיוך)
+// player=1 → כתום (שחקן 1),  player=2 → כחול (שחקן 2)
 function drawKid(ctx, cx, cy, cell, player){
   const color = player === 1 ? '#ff7f3f' : '#3b9eff';
   const r = cell * 0.38;
@@ -850,6 +894,7 @@ function drawKid(ctx, cx, cy, cell, player){
   ctx.beginPath(); ctx.arc(cx, cy + r*0.1, r*0.28, 0.15, Math.PI - 0.15); ctx.stroke();
 }
 
+// drawSmoothPath — מצייר קו חלק לאורך מסלול השחקן עם זוהר (glow)
 function drawSmoothPath(path, color, glowColor){
   if(path.length<2) return;
   ctx.save();
@@ -870,8 +915,10 @@ function drawSmoothPath(path, color, glowColor){
   ctx.restore();
 }
 
+// drawAll — מצייר את כל שכבות המשחק בכל frame:
+//   1. רקע (bgCanvas)  2. צבעי BFS  3. כניסה/יציאה  4. שבילי שחקנים  5. דמויות שחקנים
 function drawAll(){
-  // blit pre-rendered background
+  // הדבקת הרקע המעובד מראש (מהיר יותר מציור מחדש)
   if(bgCanvas) ctx.drawImage(bgCanvas,0,0);
 
   // overlays for auto-solve
@@ -980,7 +1027,10 @@ function drawAll(){
   }
 }
 
-/* ═══════════════ TIMER ═══════════════ */
+/* ═══════════════ שעון עצר ═══════════════
+ * startTimer — מפעיל את השעון ומעדכן את התצוגה כל 100ms
+ * stopTimer  — עוצר את השעון
+ * ══════════════════════════════════════ */
 function startTimer(){
   timerStart=Date.now(); elapsed=0;
   clearInterval(timerInterval);
@@ -994,7 +1044,9 @@ function startTimer(){
 }
 function stopTimer(){ clearInterval(timerInterval); timerInterval=null; }
 
-/* ═══════════════ PLAYER MOUSE ═══════════════ */
+/* ═══════════════ תנועת שחקן 1 — עכבר ומגע ═══════════════ */
+
+// cellFromEvent — ממיר קואורדינטות עכבר/מגע לתא ברשת (שורה, עמודה)
 function cellFromEvent(e){
   const rect=canvas.getBoundingClientRect();
   const cx=e.clientX??e.touches?.[0]?.clientX;
@@ -1002,10 +1054,12 @@ function cellFromEvent(e){
   return[Math.floor((cy-rect.top)/CELL), Math.floor((cx-rect.left)/CELL)];
 }
 
+// tryMove — מנסה להזיז את שחקן 1 לתא (r,c).
+// מטפל ב: בדיקת גבולות, חסימת קירות, חזרה אחורה, ניצחון.
 function tryMove(r,c){
-  if(!playMode||playerWon||busy) return;
-  if(r<0||r>=ROWS||c<0||c>=COLS) return;
-  if(grid[r][c]===1) return;           // wall check
+  if(!playMode||playerWon||busy) return; // לא במצב משחק
+  if(r<0||r>=ROWS||c<0||c>=COLS) return; // מחוץ לגבולות
+  if(grid[r][c]===1) return;             // קיר — לא ניתן לעבור
 
   const last=playerPath[playerPath.length-1];
   const key=`${r},${c}`;
@@ -1079,11 +1133,12 @@ canvas.addEventListener("touchstart",e=>{e.preventDefault();dragging=true;const[
 canvas.addEventListener("touchmove",e=>{e.preventDefault();tryMove(...cellFromEvent(e));},{passive:false});
 canvas.addEventListener("touchend",()=>{dragging=false;});
 
-/* ═══════════════ KEYBOARD ═══════════════ */
+/* ═══════════════ מקלדת — שחקן 1 (מקשי חצים) ═══════════════ */
 const ARROW_MAP = {"ArrowUp":[-1,0],"ArrowDown":[1,0],"ArrowLeft":[0,-1],"ArrowRight":[0,1]};
 let heldKey = null, moveInterval = null;
-const MOVE_DELAY = 45; // ms between auto-steps when holding key
+const MOVE_DELAY = 45; // מרווח בין צעדים כשמחזיקים מקש לחוץ (אלפיות שנייה)
 
+// doKeyMove — מבצע צעד אחד לפי מקש החץ הנוכחי
 function doKeyMove(key){
   if(!playMode) return;
   if(!ARROW_MAP[key]) return;
@@ -1112,7 +1167,9 @@ document.addEventListener("keyup",e=>{
   if(e.code === p2HeldKey){ p2HeldKey=null; clearInterval(p2MoveInterval); }
 });
 
-/* ═══════════════ PLAYER 2 MOVE ═══════════════ */
+/* ═══════════════ תנועת שחקן 2 — WASD ═══════════════ */
+
+// tryMove2 — זהה ל-tryMove אבל עבור שחקן 2 (p2Path, p2Set)
 function tryMove2(r,c){
   if(!twoPlayerMode||p2Won||!playMode) return;
   if(r<0||r>=ROWS||c<0||c>=COLS) return;
@@ -1167,7 +1224,9 @@ document.addEventListener("keydown",e=>{
   p2MoveInterval=setInterval(()=>doP2Move(p2HeldKey), 45);
 });
 
-/* ═══════════════ MODE HELPER ═══════════════ */
+/* ═══════════════ עדכון תצוגת מצב ═══════════════ */
+// setMode — מעדכן את התגית, ההוראות, ושורת הסטטוס בבת אחת
+// cls: 'idle' | 'play' | 'solve' | 'win'
 function setMode(cls,hint,modeLabel){
   modeBadge.className=`mode-badge ${cls}`;
   modeBadge.textContent=cls.toUpperCase();
@@ -1175,7 +1234,9 @@ function setMode(cls,hint,modeLabel){
   statusMode.textContent=modeLabel||cls.toUpperCase();
 }
 
-/* ═══════════════ BUTTONS ═══════════════ */
+/* ═══════════════ כפתורי ממשק ═══════════════ */
+
+// כפתור "New Maze" — מייצר מבוך חדש, מאפס את כל המצב, ומפעיל מחדש
 btnGen.addEventListener("click",()=>{
   if(animFrame){clearTimeout(animFrame);animFrame=null;}
   const was2P = twoPlayerMode;
@@ -1217,6 +1278,7 @@ btnGen.addEventListener("click",()=>{
   }
 });
 
+// כפתור "Play / Stop" — מפעיל מצב משחק ידני, או עוצר אותו אם כבר פעיל
 btnPlay.addEventListener("click",()=>{
   if(busy) return;
   if(playMode){
@@ -1242,6 +1304,7 @@ btnPlay.addEventListener("click",()=>{
   }
 });
 
+// כפתור "Auto Solve" — מריץ BFS ומציג אנימציה של החיפוש והפתרון
 btnSolve.addEventListener("click",()=>{
   if(busy||playMode) return;
   busy=true; playerPath=[]; pathSet=new Set();
@@ -1275,6 +1338,7 @@ btnSolve.addEventListener("click",()=>{
   step();
 });
 
+// finishAuto — מסיים את האנימציה האוטומטית ומחזיר את הכפתורים למצב רגיל
 function finishAuto(path){
   busy=false;
   btnGen.disabled=false; btnPlay.disabled=false;
@@ -1283,6 +1347,7 @@ function finishAuto(path){
   setMode("solve",`✅ Shortest path: ${path.length} steps`,"SOLVED");
 }
 
+// כפתור "Clear" — מאפס את המסלול ומחזיר למבוך הנוכחי מבלי לייצר חדש
 btnReset.addEventListener("click",()=>{
   if(animFrame){clearTimeout(animFrame);animFrame=null;}
   stopTimer(); busy=false; playMode=false; playerWon=false; clearInterval(moveInterval); heldKey=null;
@@ -1297,27 +1362,35 @@ btnReset.addEventListener("click",()=>{
   btnSolve.disabled=false; btnPlay.disabled=false; btnReset.disabled=true;
 });
 
-/* ═══════════════ UTILS ═══════════════ */
+/* ═══════════════ כלים עזר ═══════════════ */
+// shuffle — מערבב מערך באקראי (Fisher-Yates) — משמש ב-generateMaze
 function shuffle(a){
   for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
   return a;
 }
 
+// שינוי רמת קושי מייצר מבוך חדש אוטומטית
 document.getElementById("size-select").addEventListener("change", ()=> btnGen.click());
 
-/* ═══════════════ SETUP MODAL ═══════════════ */
+/* ═══════════════ מודל הגדרת שמות ═══════════════
+ * המודל מוצג בטעינה ובמעבר בין מצבים.
+ * שלב 1: בחירת מצב (שחקן אחד / שני שחקנים)
+ * שלב 2a: הזנת שם לשחקן 1
+ * שלב 2b: הזנת שמות לשני שחקנים
+ * ══════════════════════════════════════════ */
 const usernameModal = document.getElementById('username-modal');
-const step1         = document.getElementById('setup-step1');
-const step2_1p      = document.getElementById('setup-step2-1p');
-const step2_2p      = document.getElementById('setup-step2-2p');
+const step1         = document.getElementById('setup-step1');     // שלב 1: בחירת מצב
+const step2_1p      = document.getElementById('setup-step2-1p');  // שלב 2: שם שחקן אחד
+const step2_2p      = document.getElementById('setup-step2-2p');  // שלב 2: שמות שני שחקנים
 const usernameInput = document.getElementById('username-input');
 const usernameConfirm = document.getElementById('username-confirm');
 
+// closeSetupModal — מסתיר את המודל
 function closeSetupModal(){
   usernameModal.classList.remove('show');
 }
 
-// Step 1: pick mode
+// לחיצה על "שחקן אחד" — מעבר לשלב הזנת שם
 document.getElementById('btn-pick-1p').addEventListener('click', ()=>{
   step1.style.display = 'none';
   step2_1p.style.display = 'block';
@@ -1330,7 +1403,7 @@ document.getElementById('btn-pick-2p').addEventListener('click', ()=>{
   setTimeout(()=>document.getElementById('p1-name-input').focus(), 50);
 });
 
-// Step 2a: 1-player confirm
+// confirmUsername — מאשר שם שחקן 1, סוגר מודל, מציג לוח שיאים ומפעיל מוזיקה
 function confirmUsername(){
   if(!usernameInput.value.trim()){
     usernameInput.classList.remove('error');
@@ -1348,7 +1421,7 @@ function confirmUsername(){
 usernameConfirm.addEventListener('click', confirmUsername);
 usernameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmUsername(); });
 
-// Step 2b: 2-player confirm
+// updateScoreboard — מעדכן שמות ומונה ניצחונות בלוח הצד של מצב 2 שחקנים
 function updateScoreboard(){
   document.getElementById('sb-p1-name').textContent  = username || 'שחקן 1';
   document.getElementById('sb-p2-name').textContent  = p2Name   || 'שחקן 2';
@@ -1356,6 +1429,7 @@ function updateScoreboard(){
   document.getElementById('sb-p2-wins').textContent  = p2Wins;
 }
 
+// start2PMode — מאשר שמות שני שחקנים, מפעיל מצב 2 שחקנים ומסתיר לוח שיאים
 function start2PMode(){
   const p1Input = document.getElementById('p1-name-input');
   const p2Input = document.getElementById('p2-name-input');
@@ -1426,15 +1500,19 @@ document.getElementById('btn-switch-1p').addEventListener('click', ()=>{
   setTimeout(()=>usernameInput.focus(), 50);
 });
 
+// אתחול: הצג מודל ויצור מבוך ראשוני (כדי שהדמויות יופיעו מיד)
 usernameModal.classList.add('show');
-btnGen.click(); // auto-generate maze on load so kids appear and Play is enabled
+btnGen.click();
 
-/* ═══════════════ SCORE SAVING ═══════════════ */
+/* ═══════════════ שמירת ניקודים ═══════════════ */
+
+// getCurrentLevel — מחזיר את שם רמת הקושי הנוכחית לפי ה-dropdown
 function getCurrentLevel(){
   const v=document.getElementById('size-select').value;
   return {15:'Easy',25:'Medium',35:'Hard',51:'Extreme'}[v]||'Medium';
 }
 
+// saveScore — שולח ניקוד לשרת. שקט אם השרת לא רץ (המשחק עובד גם בלי שרת)
 async function saveScore(time, steps){
   if(!username || username==='Anonymous') return;
   try {
@@ -1447,11 +1525,12 @@ async function saveScore(time, steps){
   } catch(e){ console.warn('Could not save score (server not running)'); }
 }
 
-/* ═══════════════ SIDE LEADERBOARD (1P) ═══════════════ */
+/* ═══════════════ לוח שיאים צידי (מצב שחקן אחד) ═══════════════ */
 const spLbPanel = document.getElementById('sp-leaderboard');
 const spLbRows  = document.getElementById('sp-lb-rows');
 const spLbLevel = document.getElementById('sp-lb-level');
 
+// fetchSideLeaderboard — מושך מהשרת את עשרת הניקודים הגבוהים ומציג אותם בלוח הצד
 async function fetchSideLeaderboard(){
   if(twoPlayerMode) return;
   const level = getCurrentLevel();
@@ -1484,7 +1563,9 @@ document.getElementById('size-select').addEventListener('change', ()=>{
   if(!twoPlayerMode) fetchSideLeaderboard();
 });
 
-/* ═══════════════ 2-PLAYER MODE ═══════════════ */
+/* ═══════════════ ניצחון במצב 2 שחקנים ═══════════════ */
+// show2PWinner — מציג מסך ניצחון לשחקן שהגיע ראשון, מעדכן מונה ניצחונות
+// winner: 1 = שחקן 1 (כתום),  2 = שחקן 2 (כחול)
 function show2PWinner(winner, time, steps){
   const isP1 = winner===1;
   if(isP1) p1Wins++; else p2Wins++;
@@ -1503,11 +1584,17 @@ function show2PWinner(winner, time, steps){
 
 btnGen.click();
 
-/* ═══════════════ VICTORY CELEBRATION ═══════════════ */
+/* ═══════════════ חגיגת ניצחון ═══════════════
+ * מציג קונפטי ובלונים מונפשים על קנבס קבוע (position:fixed).
+ * spawnCelebration  — יוצר חלקיקים חדשים
+ * animateCelebration — לולאת האנימציה (requestAnimationFrame)
+ * playApplause       — מנגן מחיאות כפיים סינתטיות (Web Audio API)
+ * showVictory        — מציג את מסך הניצחון
+ * ══════════════════════════════════════════ */
 const victoryOverlay = document.getElementById('victory-overlay');
 const victorySub     = document.getElementById('victory-sub');
 const victoryClose   = document.getElementById('victory-close');
-const confettiCvs    = document.getElementById('confetti-canvas');
+const confettiCvs    = document.getElementById('confetti-canvas'); // קנבס קונפטי (position:fixed)
 const cc             = confettiCvs.getContext('2d');
 let confettiPieces   = [], balloons = [], celebFrame = null;
 
@@ -1636,11 +1723,18 @@ victoryClose.addEventListener('click', ()=>{
   btnGen.click();
 });
 
-/* ═══════════════ BACKGROUND MUSIC ═══════════════ */
-let startMusic; // exposed for auto-start on modal confirm
+/* ═══════════════ מוזיקת רקע ═══════════════
+ * מיוצרת לחלוטין דרך Web Audio API — אין קובצי mp3.
+ * הלחן מורכב מ-3 קולות: מלודיה, הרמוניה ובס.
+ * scheduleLoop — תזמון מדויק של תווים קדימה כדי למנוע גמגום
+ * toggleMusic  — מפעיל/עוצר את המוזיקה
+ * startMusic   — מיוצאת למשתנה גלובלי כדי שניתן להפעיל מבחוץ (אחרי הזנת שם)
+ * ══════════════════════════════════════════ */
+let startMusic; // מאפשר הפעלת מוזיקה מחוץ ל-IIFE (נקבע בסוף ה-IIFE)
 (function(){
   let ctx = null, playing = false, loopTimer = null;
 
+  // יצירת כפתור מוזיקה והוספתו לצד ה-dropdown של הרמה
   const btn = document.createElement('button');
   btn.className = 'btn btn-music';
   btn.innerHTML = '🎵 Music';
@@ -1651,8 +1745,8 @@ let startMusic; // exposed for auto-start on modal confirm
   wrapper.appendChild(selectGroup);
   wrapper.appendChild(btn);
 
-  const BPM  = 132;
-  const B    = 60 / BPM;
+  const BPM  = 132;        // קצב הנגינה (פעימות לדקה)
+  const B    = 60 / BPM;  // משך פעימה בשניות
 
   const F = {
     G3:196.00, A3:220.00, B3:246.94,

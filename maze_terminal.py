@@ -1,6 +1,11 @@
 """
-Maze Generator with Player Navigation
-Generates a random maze — navigate it using arrow keys or WASD
+מחולל מבוכים — גרסת טרמינל
+=============================
+יוצר מבוך אקראי ומאפשר לנווט בו עם מקשי חצים או WASD.
+אין צורך בדפדפן — רץ ישירות בטרמינל.
+
+הרצה:
+    python maze_terminal.py
 """
 
 import random
@@ -11,32 +16,40 @@ import tty
 import termios
 from collections import deque
 
-# ANSI Colors — bright theme
-WALL   = "\033[47m  \033[0m"    # Light gray wall
-PATH   = "\033[107m  \033[0m"   # Bright white path
-PLAYER = "\033[103m  \033[0m"   # Bright yellow player
-START  = "\033[102m  \033[0m"   # Bright green start
-END    = "\033[105m  \033[0m"   # Bright magenta end
-TRAIL  = "\033[106m  \033[0m"   # Bright cyan trail
+# ── צבעי ANSI לתצוגה בטרמינל ────────────────────────────────────────────────
+WALL   = "\033[47m  \033[0m"    # קיר — אפור בהיר
+PATH   = "\033[107m  \033[0m"   # נתיב — לבן בהיר
+PLAYER = "\033[103m  \033[0m"   # שחקן — צהוב בהיר
+START  = "\033[102m  \033[0m"   # נקודת התחלה — ירוק בהיר
+END    = "\033[105m  \033[0m"   # נקודת סיום — סגול בהיר
+TRAIL  = "\033[106m  \033[0m"   # שובל השחקן — תכלת בהיר
 
 
 def create_grid(rows, cols):
-    """Grid filled entirely with walls"""
+    """יוצר רשת ריקה מלאה בקירות."""
     return [["#"] * cols for _ in range(rows)]
 
 
 def generate_maze(rows, cols):
-    """Generate maze using Recursive Backtracking (DFS)"""
+    """
+    מייצר מבוך אקראי בשיטת Recursive Backtracking (DFS).
+
+    האלגוריתם:
+      - מתחיל מתא (1,1)
+      - בוחר כיוון אקראי ומנפץ את הקיר לתא השכן (קפיצה של 2)
+      - ממשיך רקורסיבית עד שכל התאים האפשריים בוקרו
+    """
     grid = create_grid(rows, cols)
 
     def carve(r, c):
+        """מנפץ נתיב מהתא הנוכחי לתאים שכנים לא-בוקרים."""
         grid[r][c] = " "
         directions = [(0, 2), (0, -2), (2, 0), (-2, 0)]
         random.shuffle(directions)
         for dr, dc in directions:
             nr, nc = r + dr, c + dc
             if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == "#":
-                grid[r + dr // 2][c + dc // 2] = " "  # break wall between cells
+                grid[r + dr // 2][c + dc // 2] = " "  # פתיחת הקיר בין שני התאים
                 carve(nr, nc)
 
     carve(1, 1)
@@ -44,7 +57,17 @@ def generate_maze(rows, cols):
 
 
 def print_maze(grid, player=None, trail=None, start=None, end=None, message=""):
-    """Render the maze with colors"""
+    """
+    מדפיס את המבוך עם צבעי ANSI.
+
+    פרמטרים:
+        grid    — מטריצת המבוך
+        player  — מיקום השחקן (שורה, עמודה)
+        trail   — סט של תאים שהשחקן עבר בהם
+        start   — נקודת ההתחלה
+        end     — נקודת הסיום
+        message — הודעה להדפסה מתחת למבוך
+    """
     trail = trail or set()
     os.system("clear")
     for r, row in enumerate(grid):
@@ -69,13 +92,18 @@ def print_maze(grid, player=None, trail=None, start=None, end=None, message=""):
 
 
 def get_key():
-    """Read a single keypress (including arrow keys) from stdin"""
+    """
+    קורא הקשת מקש בודדת מהמקלדת (כולל מקשי חצים).
+
+    מקשי חצים נשלחים כרצף של 3 תווים: ESC + '[' + אות.
+    הפונקציה מטפלת בזה ומחזירה את הרצף כמחרוזת אחת.
+    """
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
     try:
         tty.setraw(fd)
         ch = sys.stdin.read(1)
-        if ch == '\x1b':
+        if ch == '\x1b':  # מקש חץ מתחיל ב-ESC
             ch2 = sys.stdin.read(1)
             ch3 = sys.stdin.read(1)
             return ch + ch2 + ch3
@@ -85,16 +113,24 @@ def get_key():
 
 
 def play_maze(grid, start, end):
-    """Interactive maze navigation with arrow keys / WASD"""
+    """
+    לולאת המשחק הראשית — ניווט אינטראקטיבי במבוך.
+
+    שליטה:
+        מקשי חצים או WASD — תנועה
+        Q או Ctrl+C        — יציאה מהמשחק
+    """
     player = start
-    trail = set()
+    trail = set()          # תאים שהשחקן עבר בהם (לצביעת השובל)
     rows, cols = len(grid), len(grid[0])
 
+    # קודי מקשי חצים
     ARROW_UP    = '\x1b[A'
     ARROW_DOWN  = '\x1b[B'
     ARROW_RIGHT = '\x1b[C'
     ARROW_LEFT  = '\x1b[D'
 
+    # מיפוי מקשים לשינוי מיקום (שורה, עמודה)
     moves = {
         ARROW_UP:    (-1,  0),
         ARROW_DOWN:  ( 1,  0),
@@ -112,28 +148,32 @@ def play_maze(grid, start, end):
     while True:
         key = get_key()
 
-        if key in ('q', 'Q', '\x03'):   # Q or Ctrl+C
+        # יציאה מהמשחק
+        if key in ('q', 'Q', '\x03'):
             print("\nGame quit.")
             break
 
+        # תנועה — בדיקה שהתא החדש קיים ואינו קיר
         if key in moves:
             dr, dc = moves[key]
             nr, nc = player[0] + dr, player[1] + dc
             if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == " ":
-                trail.add(player)
+                trail.add(player)      # מסמן את המיקום הקודם כשובל
                 player = (nr, nc)
 
         print_maze(grid, player=player, trail=trail, start=start, end=end, message=hint)
 
+        # בדיקת ניצחון — השחקן הגיע לנקודת הסיום
         if player == end:
             print(f"\n  You reached the exit in {len(trail) + 1} steps!  Congratulations!")
             break
 
 
 def main():
-    sys.setrecursionlimit(100_000)
+    """נקודת הכניסה הראשית — מגדיר את גודל המבוך ומפעיל את המשחק."""
+    sys.setrecursionlimit(100_000)  # נדרש כי generate_maze משתמשת ברקורסיה עמוקה
 
-    ROWS, COLS = 21, 51  # must be odd numbers
+    ROWS, COLS = 21, 51  # חייבים להיות מספרים אי-זוגיים
 
     print("Generating maze...")
     time.sleep(0.3)
@@ -143,7 +183,7 @@ def main():
     start = (1, 1)
     end   = (ROWS - 2, COLS - 2)
 
-    # Entry / exit openings
+    # פתיחת כניסה ויציאה בשוליים המבוך
     grid[0][1]           = " "
     grid[ROWS-1][COLS-2] = " "
 
