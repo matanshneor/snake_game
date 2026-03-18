@@ -1724,15 +1724,16 @@ victoryClose.addEventListener('click', ()=>{
 });
 
 /* ═══════════════ מוזיקת רקע ═══════════════
- * מיוצרת לחלוטין דרך Web Audio API — אין קובצי mp3.
- * הלחן מורכב מ-3 קולות: מלודיה, הרמוניה ובס.
- * scheduleLoop — תזמון מדויק של תווים קדימה כדי למנוע גמגום
- * toggleMusic  — מפעיל/עוצר את המוזיקה
- * startMusic   — מיוצאת למשתנה גלובלי כדי שניתן להפעיל מבחוץ (אחרי הזנת שם)
+ * מיוצרת דרך Web Audio API — ללא קובצי mp3.
+ * גרף הצליל: אוסצילטורים → lowpass → masterGain → destination
+ *                          → reverb (convolver) → reverbReturn → destination
+ * כל תו מנוגן עם שני sine מנותקים מעט (chorus חמים).
+ * BPM נמוך + reverb + lowpass = צליל רך ואמביינטי.
  * ══════════════════════════════════════════ */
-let startMusic; // מאפשר הפעלת מוזיקה מחוץ ל-IIFE (נקבע בסוף ה-IIFE)
+let startMusic;
 (function(){
   let ctx = null, playing = false, loopTimer = null;
+  let masterGain, lowpass, reverb, reverbReturn;
 
   // יצירת כפתור מוזיקה והוספתו לצד ה-dropdown של הרמה
   const btn = document.createElement('button');
@@ -1745,137 +1746,136 @@ let startMusic; // מאפשר הפעלת מוזיקה מחוץ ל-IIFE (נקבע
   wrapper.appendChild(selectGroup);
   wrapper.appendChild(btn);
 
-  const BPM  = 132;        // קצב הנגינה (פעימות לדקה)
-  const B    = 60 / BPM;  // משך פעימה בשניות
+  const BPM = 76;        // קצב איטי ורגוע (לעומת 132 הקודם)
+  const B   = 60 / BPM; // משך פעימה בשניות ≈ 0.79s
 
   const F = {
-    G3:196.00, A3:220.00, B3:246.94,
+    A2:110.00,
+    C3:130.81, F3:174.61, G3:196.00, A3:220.00, B3:246.94,
     C4:261.63, D4:293.66, E4:329.63, F4:349.23, G4:392.00, A4:440.00, B4:493.88,
-    C5:523.25, D5:587.33, E5:659.25, F5:698.46, G5:783.99, A5:880.00, B5:987.77,
-    C6:1046.50, D6:1174.66
+    C5:523.25, D5:587.33, E5:659.25,
   };
 
-  // Upbeat bouncy melody
+  // מלודיה עדינה ואיטית — C major, זורמת ומרגיעה
   const MELODY = [
-    // Phrase A
-    ['C5',.5],['E5',.5],['G5',.5],['C6',.5],
-    ['B5',.5],['A5',.5],['G5',.5],['E5',.5],
-    ['F5',.5],['A5',.5],['C6',.5],['A5',.5],
-    ['G5',1],['E5',.5],['G5',.5],
-    // Phrase B
-    ['A5',.5],['G5',.5],['F5',.5],['E5',.5],
-    ['D5',.5],['E5',.5],['F5',.5],['G5',.5],
-    ['E5',.5],['C5',.5],['D5',.5],['E5',.5],
-    ['C5',2],
-    // Phrase C (bridge — higher energy)
-    ['G5',.25],['G5',.25],['A5',.5],['G5',.5],['F5',.5],
-    ['E5',.5],['E5',.25],['E5',.25],['F5',.5],['E5',.5],['D5',.5],
-    ['C5',.5],['D5',.5],['E5',.5],['F5',.5],
-    ['G5',1],['C5',.5],['C5',.5],
-    // Phrase D (finale)
-    ['C5',.5],['E5',.5],['G5',.5],['E5',.5],
-    ['F5',.5],['A5',.5],['C6',.5],['A5',.5],
-    ['G5',.5],['B5',.5],['D6',.5],['B5',.5],
-    ['C6',1],['G5',.5],['E5',.5],
-    ['D5',.5],['F5',.5],['A5',.5],['G5',.5],
-    ['C5',2],
+    // Phrase A — עולה בשקט
+    ['E4',2],['G4',2],['C5',2],['B4',2],
+    ['A4',2],['C5',2],['G4',4],
+    ['F4',2],['A4',2],['C5',2],['E5',2],
+    ['D5',2],['C5',2],['G4',4],
+    // Phrase B — יורד בנחת
+    ['E5',2],['D5',2],['C5',2],['A4',2],
+    ['G4',2],['A4',2],['C5',4],
+    ['B4',2],['A4',2],['G4',2],['E4',2],
+    ['C4',4],['C4',4],
   ];
 
-  // Harmony a third below (parallel)
+  // הרמוניה שקטה — שלישיות
   const HARMONY = [
-    ['A4',.5],['C5',.5],['E5',.5],['A5',.5],
-    ['G5',.5],['F5',.5],['E5',.5],['C5',.5],
-    ['D5',.5],['F5',.5],['A5',.5],['F5',.5],
-    ['E5',1],['C5',.5],['E5',.5],
-    ['F5',.5],['E5',.5],['D5',.5],['C5',.5],
-    ['B4',.5],['C5',.5],['D5',.5],['E5',.5],
-    ['C5',.5],['A4',.5],['B4',.5],['C5',.5],
-    ['A4',2],
-    ['E5',.25],['E5',.25],['F5',.5],['E5',.5],['D5',.5],
-    ['C5',.5],['C5',.25],['C5',.25],['D5',.5],['C5',.5],['B4',.5],
-    ['A4',.5],['B4',.5],['C5',.5],['D5',.5],
-    ['E5',1],['A4',.5],['A4',.5],
-    ['A4',.5],['C5',.5],['E5',.5],['C5',.5],
-    ['D5',.5],['F5',.5],['A5',.5],['F5',.5],
-    ['E5',.5],['G5',.5],['B5',.5],['G5',.5],
-    ['A5',1],['E5',.5],['C5',.5],
-    ['B4',.5],['D5',.5],['F5',.5],['E5',.5],
-    ['A4',2],
+    ['C4',2],['E4',2],['E4',2],['G4',2],
+    ['F4',2],['A4',2],['E4',4],
+    ['D4',2],['F4',2],['A4',2],['C5',2],
+    ['B4',2],['A4',2],['E4',4],
+    ['C5',2],['B4',2],['A4',2],['F4',2],
+    ['E4',2],['F4',2],['A4',4],
+    ['G4',2],['F4',2],['E4',2],['C4',2],
+    ['A3',4],['A3',4],
   ];
 
-  // Walking bass arpeggio
+  // בס רגוע — תווים ארוכים (8 פעימות כל אחד)
   const BASS = [
-    ['C4',.5],['E4',.5],['G4',.5],['E4',.5], // C ×2
-    ['C4',.5],['E4',.5],['G4',.5],['E4',.5],
-    ['F3',.5],['A3',.5],['C4',.5],['A3',.5], // F ×2
-    ['F3',.5],['A3',.5],['C4',.5],['A3',.5],
-    ['A3',.5],['C4',.5],['E4',.5],['C4',.5], // Am ×2
-    ['A3',.5],['C4',.5],['E4',.5],['C4',.5],
-    ['G3',.5],['B3',.5],['D4',.5],['B3',.5], // G ×2
-    ['G3',.5],['B3',.5],['D4',.5],['B3',.5],
-    ['C4',.5],['E4',.5],['G4',.5],['E4',.5], // C ×2
-    ['C4',.5],['E4',.5],['G4',.5],['E4',.5],
-    ['F3',.5],['A3',.5],['C4',.5],['A3',.5], // F ×2
-    ['F3',.5],['A3',.5],['C4',.5],['A3',.5],
-    ['G3',.5],['B3',.5],['D4',.5],['B3',.5], // G ×4 (finale)
-    ['G3',.5],['B3',.5],['D4',.5],['B3',.5],
-    ['G3',.5],['B3',.5],['D4',.5],['B3',.5],
-    ['G3',.5],['B3',.5],['D4',.5],['B3',.5],
+    ['C3',8],['F3',8],
+    ['C3',8],['G3',8],
+    ['A2',8],['F3',8],
+    ['G3',8],['C3',8],
   ];
 
-  function tone(freq, type, gain, t, dur, atk=0.015){
-    const osc = ctx.createOscillator();
-    const g   = ctx.createGain();
-    osc.connect(g); g.connect(ctx.destination);
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t);
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(gain, t + atk);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.85);
-    osc.start(t); osc.stop(t + dur);
+  // buildGraph — בונה את גרף הצליל לאחר יצירת ה-AudioContext
+  function buildGraph(){
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0.30; // עוצמה כללית נמוכה
+
+    // פילטר lowpass — מחליק תדרים חדים
+    lowpass = ctx.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.value = 1800;
+    lowpass.Q.value = 0.4;
+
+    // reverb — impulse response מנויז מדועך (הדהוד)
+    reverb = ctx.createConvolver();
+    const rate = ctx.sampleRate, len = Math.floor(rate * 2.2);
+    const ir = ctx.createBuffer(2, len, rate);
+    for(let c=0;c<2;c++){
+      const d = ir.getChannelData(c);
+      for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/len, 2.5);
+    }
+    reverb.buffer = ir;
+
+    reverbReturn = ctx.createGain();
+    reverbReturn.gain.value = 0.30; // עוצמת ההדהוד
+
+    // חיבור הגרף
+    lowpass.connect(masterGain);
+    masterGain.connect(ctx.destination);
+    lowpass.connect(reverb);
+    reverb.connect(reverbReturn);
+    reverbReturn.connect(ctx.destination);
   }
 
-  // Bright bell hit for accents
-  function bell(freq, t){
-    tone(freq * 2, 'sine', 0.06, t, B * 0.4, 0.005);
+  // tone — מנגן תו אחד עם 2 sine מנותקים מעט (chorus = חמימות)
+  function tone(freq, gain, t, dur){
+    [0, 7].forEach((detune, i) => {
+      const osc = ctx.createOscillator();
+      const g   = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      osc.detune.value = detune;
+      osc.connect(g);
+      g.connect(lowpass);
+      const v   = gain * (i ? 0.45 : 1); // האוסצילטור השני שקט יותר
+      const atk = 0.09;
+      const rel = Math.min(dur * 0.4, 0.55);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v, t + atk);     // עלייה חלקה
+      g.gain.setValueAtTime(v, t + dur - rel);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur); // ירידה חלקה
+      osc.start(t); osc.stop(t + dur + 0.1);
+    });
   }
 
   function scheduleLoop(startAt){
     let t = startAt, th = startAt, tb = startAt;
 
-    for(let i = 0; i < MELODY.length; i++){
-      const [n, b] = MELODY[i];
-      const dur = b * B;
-      tone(F[n], 'triangle', 0.11, t, dur * 0.82);
-      // bell on beat-1 notes (every 2 beats aligned)
-      if(Math.round((t - startAt) / B) % 4 === 0) bell(F[n], t);
-      t += dur;
+    for(const [n, b] of MELODY){
+      tone(F[n], 0.09, t, b * B);
+      t += b * B;
     }
     const totalDur = t - startAt;
 
     for(const [n, b] of HARMONY){
-      const dur = b * B;
-      tone(F[n], 'triangle', 0.055, th, dur * 0.75);
-      th += dur;
+      tone(F[n], 0.038, th, b * B);
+      th += b * B;
     }
 
     for(const [n, b] of BASS){
-      const dur = b * B;
-      tone(F[n], 'sine', 0.08, tb, dur * 0.65, 0.008);
-      tb += dur;
+      // בס אוקטבה נמוכה יותר × 0.5
+      tone(F[n] * 0.5, 0.052, tb, b * B);
+      tb += b * B;
     }
 
     const delay = Math.max(50, (startAt + totalDur - ctx.currentTime - 0.4) * 1000);
     loopTimer = setTimeout(()=>{
       if(!playing) return;
-      // if we're late, start immediately from now
       const next = Math.max(ctx.currentTime + 0.05, startAt + totalDur);
       scheduleLoop(next);
     }, delay);
   }
 
   function toggleMusic(){
-    if(!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if(!ctx){
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      buildGraph();
+    }
     if(ctx.state === 'suspended') ctx.resume();
     playing = !playing;
     if(playing){
